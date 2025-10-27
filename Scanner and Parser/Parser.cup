@@ -1,0 +1,201 @@
+import java_cup.runtime.*;
+import java.io.Reader;
+
+/* Código inicial */
+parser code {:
+    // Conectar el parser con el scanner
+    Scanner scanner;
+
+    /** Constructor del Parser que recibe un Scanner. */
+    public Parser(Scanner scanner) {
+        super(scanner); // Llama al constructor de java_cup.runtime.lr_parser
+        this.scanner = scanner;
+    }
+
+    /**
+     * Método para el manejo de los errores de sintaxis.
+     */
+    public void report_error(String message, Object info) {
+        StringBuilder m = new StringBuilder("[Error de Sintaxis]");
+        if (info instanceof java_cup.runtime.Symbol) {
+            java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
+            if (s.left >= 0) { // s.left es la línea
+                m.append(" en línea " + (s.left + 1));
+                if (s.right >= 0) { // s.right es la columna
+                    m.append(", columna " + (s.right + 1));
+                }
+            }
+        }
+        m.append(" : " + message);
+        System.err.println(m);
+    }
+
+    /**
+     * Método para reportar errores fatales 
+     */
+    public void report_fatal_error(String message, Object info) {
+        report_error(message, info);
+        throw new RuntimeException("Error fatal de sintaxis");
+    }
+
+    /**
+     * Método principal para iniciar el análisis
+     */
+    public Symbol do_parse() throws Exception {
+        return this.parse();
+    }
+:};
+
+/* --- Declaraciones de Terminales (Tokens) --- */
+// Palabras reservadas
+terminal PROGRAM, MAIN, END, VAR, INT, FLOAT, VOID, IF, ELSE, WHILE, DO, PRINT;
+
+// Operadores
+terminal ASSIGN, PLUS, MINUS, TIMES, DIV, GT, LT, NE;
+
+// Puntuación
+terminal SEMI, COMMA, COLON, LPAREN, RPAREN, LBRACE, RBRACE;
+
+// Terminales virtuales para precedencia
+terminal UPLUS, UMINUS;
+
+// Tokens con valor 
+terminal String ID, CTE_STRING;
+terminal Integer CTE_INT;
+terminal Float CTE_FLOAT;
+
+/* --- Declaraciones de No-Terminales --- */
+non terminal programa, vars, lista_vars, declaracion, lista_ids, type;
+non terminal funcs, def_func, tipo_retorno, params, lista_params;
+non terminal required_body, optional_body, lista_sentencias, sentencia;
+non terminal assign, print, lista_print, elemento_print, cycle, condition, else_part;
+non terminal expresion, exp, op_relacional, termino, factor, cte, f_call, argumentos, lista_argumentos;
+
+/* --- Precedencia y Asociatividad de Operadores --- */
+precedence left GT, LT, NE;
+precedence left PLUS, MINUS;
+precedence left TIMES, DIV;
+precedence right UPLUS, UMINUS; // Operadores unarios 
+
+/* --- La Gramática --- */
+
+start with programa;
+
+/* Estructura General del Programa */
+programa ::= PROGRAM ID SEMI vars funcs MAIN required_body END
+    {: System.out.println("Análisis sintáctico completado con éxito."); :};
+
+/* Declaración de Variables */
+vars ::= VAR lista_vars
+       | /* epsilon */
+       ;
+
+lista_vars ::= lista_vars declaracion
+             | declaracion
+             ;
+
+declaracion ::= lista_ids COLON type SEMI;
+
+lista_ids ::= lista_ids COMMA ID
+            | ID
+            ;
+
+type ::= INT | FLOAT;
+
+/* Definición de Funciones */
+funcs ::= funcs def_func
+        | /* epsilon */
+        ;
+
+def_func ::= tipo_retorno ID LPAREN params RPAREN vars optional_body SEMI;
+
+tipo_retorno ::= VOID | type;
+
+params ::= lista_params
+         | /* epsilon */
+         ;
+
+lista_params ::= lista_params COMMA ID COLON type
+               | ID COLON type
+               ;
+
+/* --- SECCIÓN DE BODY CORREGIDA --- */
+
+/* Cuerpo y Sentencias */
+
+required_body ::= LBRACE lista_sentencias RBRACE
+                ;
+
+optional_body ::= LBRACE lista_sentencias RBRACE
+                | /* epsilon */
+                ;
+
+lista_sentencias ::= lista_sentencias sentencia
+                   | /* epsilon */
+                   ;
+
+sentencia ::= assign
+            | condition
+            | cycle
+            | f_call SEMI  // Se llama a la función como una sentencia
+            | print
+            ;
+
+/* Definición de las Sentencias */
+assign ::= ID ASSIGN expresion SEMI;
+
+print ::= PRINT LPAREN lista_print RPAREN SEMI;
+
+lista_print ::= lista_print COMMA elemento_print
+              | elemento_print
+              ;
+
+elemento_print ::= expresion | CTE_STRING;
+
+cycle ::= WHILE LPAREN expresion RPAREN DO required_body SEMI;
+
+condition ::= IF LPAREN expresion RPAREN required_body else_part SEMI;
+
+else_part ::= ELSE required_body
+            | /* epsilon */
+            ;
+
+/* --- FIN DE SECCIÓN CORREGIDA --- */
+
+/* Jerarquía de Expresiones */
+expresion ::= exp op_relacional exp
+            | exp
+            ;
+
+op_relacional ::= GT | LT | NE;
+
+exp ::= exp PLUS termino
+      | exp MINUS termino
+      | termino
+      ;
+
+termino ::= termino TIMES factor
+          | termino DIV factor
+          | factor
+          ;
+
+factor ::= LPAREN expresion RPAREN
+         | PLUS factor %prec UPLUS    // + unario
+         | MINUS factor %prec UMINUS   // - unario
+         | cte
+         | f_call // Llamada a función como expresión
+         | ID
+         ;
+
+/* Elementos Atómicos */
+cte ::= CTE_INT | CTE_FLOAT;
+
+f_call ::= ID LPAREN argumentos RPAREN;
+
+argumentos ::= lista_argumentos
+             | /* epsilon */
+             ;
+
+lista_argumentos ::= lista_argumentos COMMA expresion
+                   | expresion
+                   ;

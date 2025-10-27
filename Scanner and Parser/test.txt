@@ -1,0 +1,6 @@
+program TestSintax2;
+main 
+{
+    x = 5 + 10;
+}
+end

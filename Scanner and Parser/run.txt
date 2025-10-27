@@ -1,0 +1,15 @@
+# 1. Generar Scanner.java desde Scanner.flex
+java -jar jflex-full-1.9.1.jar Scanner.flex
+
+# 2. Generar Parser.java y sym.java desde Parser.cup
+#    -parser Parser : Nombra la clase del parser
+#    -symbols sym   : Nombra la clase de símbolos
+java -jar java-cup-11b.jar -parser Parser -symbols sym Parser.cup
+
+# 3. Compilar todos los archivos .java
+#    Necesitamos incluir el jar de CUP en el classpath (-cp)
+javac -cp ".:java-cup-11b.jar" *.java
+
+# 4. Ejecutar el compilador sobre un archivo de prueba
+#    Crea un archivo 'test.txt' con código de tu lenguaje
+java -cp ".:java-cup-11b.jar" Main test.txt
