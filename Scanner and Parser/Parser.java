@@ -289,6 +289,9 @@ public class Parser extends java_cup.runtime.lr_parser {
     // Conectar el parser con el scanner
     Scanner scanner;
 
+    // <-- CAMBIO 1: Añadir esta bandera
+    public boolean syntaxError = false;
+
     /** Constructor del Parser que recibe un Scanner. */
     public Parser(Scanner scanner) {
         super(scanner); // Llama al constructor de java_cup.runtime.lr_parser
@@ -299,12 +302,16 @@ public class Parser extends java_cup.runtime.lr_parser {
      * Método MEJORADO para el manejo de los errores de sintaxis.
      */
     public void report_error(String message, Object info) {
+        
+        // <-- CAMBIO 2: Poner la bandera en true
+        this.syntaxError = true; 
+
         StringBuilder m = new StringBuilder("[Error de Sintaxis]");
         
         if (info instanceof java_cup.runtime.Symbol) {
             java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
             
-            // <-- CAMBIO: El scanner (yyline + 1) ya suma 1. No sumar de nuevo.
+            // El scanner (yyline + 1) ya suma 1. No sumar de nuevo.
             if (s.left >= 1) { // s.left es la línea
                 m.append(" en línea " + s.left);
                 if (s.right >= 1) { // s.right es la columna
@@ -313,7 +320,12 @@ public class Parser extends java_cup.runtime.lr_parser {
             }
 
             if (s.sym != sym.EOF) {
-                m.append(". Se encontró un token inesperado: '" + s.value + "' (Tipo: " + sym.terminalNames[s.sym] + ")");
+                // Si el valor es null (como en SEMI), no lo imprimimos.
+                if (s.value != null) {
+                    m.append(". Se encontró un token inesperado: '" + s.value + "' (Tipo: " + sym.terminalNames[s.sym] + ")");
+                } else {
+                    m.append(". Se encontró un token inesperado: (Tipo: " + sym.terminalNames[s.sym] + ")");
+                }
             } else {
                 m.append(". Se llegó al fin de archivo inesperadamente.");
             }
@@ -381,7 +393,13 @@ class CUP$Parser$actions {
           case 1: // programa ::= PROGRAM ID SEMI vars funcs MAIN required_body END 
             {
               Object RESULT =null;
-		 System.out.println("Análisis sintáctico completado con éxito."); 
+		 
+        if (!parser.syntaxError) {
+            System.out.println("Análisis sintáctico completado con éxito.");
+        } else {
+            System.out.println("Análisis completado con errores de sintaxis.");
+        }
+    
               CUP$Parser$result = parser.getSymbolFactory().newSymbol("programa",0, ((java_cup.runtime.Symbol)CUP$Parser$stack.elementAt(CUP$Parser$top-7)), ((java_cup.runtime.Symbol)CUP$Parser$stack.peek()), RESULT);
             }
           return CUP$Parser$result;
@@ -435,7 +453,7 @@ class CUP$Parser$actions {
           case 7: // declaracion ::= error SEMI 
             {
               Object RESULT =null;
-		 parser.report_error("Error en declaración, recuperando en ';'", null); 
+		 System.err.println("[Recuperación] Error en declaración. Descartando hasta ';'."); 
               CUP$Parser$result = parser.getSymbolFactory().newSymbol("declaracion",3, ((java_cup.runtime.Symbol)CUP$Parser$stack.elementAt(CUP$Parser$top-1)), ((java_cup.runtime.Symbol)CUP$Parser$stack.peek()), RESULT);
             }
           return CUP$Parser$result;
@@ -669,7 +687,7 @@ class CUP$Parser$actions {
           case 33: // sentencia ::= error SEMI 
             {
               Object RESULT =null;
-		 parser.report_error("Error de sintaxis en sentencia, recuperando en ';'", null); 
+		 System.err.println("[Recuperación] Error en sentencia. Descartando hasta ';'."); 
               CUP$Parser$result = parser.getSymbolFactory().newSymbol("sentencia",14, ((java_cup.runtime.Symbol)CUP$Parser$stack.elementAt(CUP$Parser$top-1)), ((java_cup.runtime.Symbol)CUP$Parser$stack.peek()), RESULT);
             }
           return CUP$Parser$result;

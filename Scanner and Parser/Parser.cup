@@ -6,6 +6,9 @@ parser code {:
     // Conectar el parser con el scanner
     Scanner scanner;
 
+    // <-- CAMBIO 1: Añadir esta bandera
+    public boolean syntaxError = false;
+
     /** Constructor del Parser que recibe un Scanner. */
     public Parser(Scanner scanner) {
         super(scanner); // Llama al constructor de java_cup.runtime.lr_parser
@@ -16,12 +19,16 @@ parser code {:
      * Método MEJORADO para el manejo de los errores de sintaxis.
      */
     public void report_error(String message, Object info) {
+        
+        // <-- CAMBIO 2: Poner la bandera en true
+        this.syntaxError = true; 
+
         StringBuilder m = new StringBuilder("[Error de Sintaxis]");
         
         if (info instanceof java_cup.runtime.Symbol) {
             java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
             
-            // <-- CAMBIO: El scanner (yyline + 1) ya suma 1. No sumar de nuevo.
+            // El scanner (yyline + 1) ya suma 1. No sumar de nuevo.
             if (s.left >= 1) { // s.left es la línea
                 m.append(" en línea " + s.left);
                 if (s.right >= 1) { // s.right es la columna
@@ -30,7 +37,12 @@ parser code {:
             }
 
             if (s.sym != sym.EOF) {
-                m.append(". Se encontró un token inesperado: '" + s.value + "' (Tipo: " + sym.terminalNames[s.sym] + ")");
+                // Si el valor es null (como en SEMI), no lo imprimimos.
+                if (s.value != null) {
+                    m.append(". Se encontró un token inesperado: '" + s.value + "' (Tipo: " + sym.terminalNames[s.sym] + ")");
+                } else {
+                    m.append(". Se encontró un token inesperado: (Tipo: " + sym.terminalNames[s.sym] + ")");
+                }
             } else {
                 m.append(". Se llegó al fin de archivo inesperadamente.");
             }
@@ -85,7 +97,14 @@ start with programa;
 
 /* Estructura General del Programa */
 programa ::= PROGRAM ID SEMI vars funcs MAIN required_body END
-    {: System.out.println("Análisis sintáctico completado con éxito."); :};
+    // <-- CAMBIO 3: Añadir lógica condicional
+    {: 
+        if (!parser.syntaxError) {
+            System.out.println("Análisis sintáctico completado con éxito.");
+        } else {
+            System.out.println("Análisis completado con errores de sintaxis.");
+        }
+    :};
 
 /* Declaración de Variables */
 vars ::= VAR lista_vars
@@ -97,9 +116,9 @@ lista_vars ::= lista_vars declaracion
              ;
 
 declaracion ::= lista_ids COLON type SEMI
-            // Mantenemos la recuperación aquí
             | error SEMI 
-                {: parser.report_error("Error en declaración, recuperando en ';'", null); :}
+                // <-- CAMBIO 4 (Limpieza): Mensaje de recuperación simple
+                {: System.err.println("[Recuperación] Error en declaración. Descartando hasta ';'."); :}
             ;
 
 lista_ids ::= lista_ids COMMA ID
@@ -113,7 +132,6 @@ funcs ::= funcs def_func
         | /* epsilon */
         ;
 
-// <-- CAMBIO: Se eliminó la regla '| error SEMI' de aquí para resolver el conflicto
 def_func ::= tipo_retorno ID LPAREN params RPAREN vars optional_body SEMI;
 
 tipo_retorno ::= VOID | type;
@@ -148,7 +166,8 @@ sentencia ::= assign
             | print
             // Recuperación de sentencia
             | error SEMI 
-                {: parser.report_error("Error de sintaxis en sentencia, recuperando en ';'", null); :}
+                // <-- CAMBIO 5 (Limpieza): Mensaje de recuperación simple
+                {: System.err.println("[Recuperación] Error en sentencia. Descartando hasta ';'."); :}
             ;
 
 /* Definición de las Sentencias */

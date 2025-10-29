@@ -11,7 +11,7 @@ main
     c = a + b * 2; 
     
     /* Paréntesis */
-    c = (a + b * 2;
+    c = (a + b) * 2;
     
     /* Operadores unarios */
     x = -5.0 + +a; 
