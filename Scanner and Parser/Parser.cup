@@ -13,20 +13,30 @@ parser code {:
     }
 
     /**
-     * Método para el manejo de los errores de sintaxis.
+     * Método MEJORADO para el manejo de los errores de sintaxis.
      */
     public void report_error(String message, Object info) {
         StringBuilder m = new StringBuilder("[Error de Sintaxis]");
+        
         if (info instanceof java_cup.runtime.Symbol) {
             java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
-            if (s.left >= 0) { // s.left es la línea
-                m.append(" en línea " + (s.left + 1));
-                if (s.right >= 0) { // s.right es la columna
-                    m.append(", columna " + (s.right + 1));
+            
+            // <-- CAMBIO: El scanner (yyline + 1) ya suma 1. No sumar de nuevo.
+            if (s.left >= 1) { // s.left es la línea
+                m.append(" en línea " + s.left);
+                if (s.right >= 1) { // s.right es la columna
+                    m.append(", columna " + s.right);
                 }
             }
+
+            if (s.sym != sym.EOF) {
+                m.append(". Se encontró un token inesperado: '" + s.value + "' (Tipo: " + sym.terminalNames[s.sym] + ")");
+            } else {
+                m.append(". Se llegó al fin de archivo inesperadamente.");
+            }
         }
-        m.append(" : " + message);
+        
+        m.append("\n  > " + message.replace("\n", "\n  > "));
         System.err.println(m);
     }
 
@@ -35,7 +45,7 @@ parser code {:
      */
     public void report_fatal_error(String message, Object info) {
         report_error(message, info);
-        throw new RuntimeException("Error fatal de sintaxis");
+        throw new RuntimeException("Error fatal de sintaxis. No se puede continuar.");
     }
 
     /**
@@ -47,19 +57,11 @@ parser code {:
 :};
 
 /* --- Declaraciones de Terminales (Tokens) --- */
-// Palabras reservadas
 terminal PROGRAM, MAIN, END, VAR, INT, FLOAT, VOID, IF, ELSE, WHILE, DO, PRINT;
-
-// Operadores
 terminal ASSIGN, PLUS, MINUS, TIMES, DIV, GT, LT, NE;
-
-// Puntuación
 terminal SEMI, COMMA, COLON, LPAREN, RPAREN, LBRACE, RBRACE;
-
-// Terminales virtuales para precedencia
+// 'error' es implícito, no se declara.
 terminal UPLUS, UMINUS;
-
-// Tokens con valor 
 terminal String ID, CTE_STRING;
 terminal Integer CTE_INT;
 terminal Float CTE_FLOAT;
@@ -71,11 +73,11 @@ non terminal required_body, optional_body, lista_sentencias, sentencia;
 non terminal assign, print, lista_print, elemento_print, cycle, condition, else_part;
 non terminal expresion, exp, op_relacional, termino, factor, cte, f_call, argumentos, lista_argumentos;
 
-/* --- Precedencia y Asociatividad de Operadores --- */
+/* --- Precedencia y Asociatividad --- */
 precedence left GT, LT, NE;
 precedence left PLUS, MINUS;
 precedence left TIMES, DIV;
-precedence right UPLUS, UMINUS; // Operadores unarios 
+precedence right UPLUS, UMINUS; 
 
 /* --- La Gramática --- */
 
@@ -94,7 +96,11 @@ lista_vars ::= lista_vars declaracion
              | declaracion
              ;
 
-declaracion ::= lista_ids COLON type SEMI;
+declaracion ::= lista_ids COLON type SEMI
+            // Mantenemos la recuperación aquí
+            | error SEMI 
+                {: parser.report_error("Error en declaración, recuperando en ';'", null); :}
+            ;
 
 lista_ids ::= lista_ids COMMA ID
             | ID
@@ -107,6 +113,7 @@ funcs ::= funcs def_func
         | /* epsilon */
         ;
 
+// <-- CAMBIO: Se eliminó la regla '| error SEMI' de aquí para resolver el conflicto
 def_func ::= tipo_retorno ID LPAREN params RPAREN vars optional_body SEMI;
 
 tipo_retorno ::= VOID | type;
@@ -119,83 +126,53 @@ lista_params ::= lista_params COMMA ID COLON type
                | ID COLON type
                ;
 
-/* --- SECCIÓN DE BODY CORREGIDA --- */
+/* Cuerpo y Sentencias (Usando la corrección anterior para el conflicto S/R) */
 
-/* Cuerpo y Sentencias */
-
-required_body ::= LBRACE lista_sentencias RBRACE
+required_body ::= LBRACE RBRACE // Cuerpo vacío
+                | LBRACE lista_sentencias RBRACE
                 ;
 
-optional_body ::= LBRACE lista_sentencias RBRACE
-                | /* epsilon */
+optional_body ::= LBRACE RBRACE // Cuerpo vacío
+                | LBRACE lista_sentencias RBRACE
+                | /* epsilon */ // Sin cuerpo
                 ;
 
 lista_sentencias ::= lista_sentencias sentencia
-                   | /* epsilon */
+                   | sentencia // Debe tener al menos una
                    ;
 
 sentencia ::= assign
             | condition
             | cycle
-            | f_call SEMI  // Se llama a la función como una sentencia
+            | f_call SEMI
             | print
+            // Recuperación de sentencia
+            | error SEMI 
+                {: parser.report_error("Error de sintaxis en sentencia, recuperando en ';'", null); :}
             ;
 
 /* Definición de las Sentencias */
 assign ::= ID ASSIGN expresion SEMI;
-
 print ::= PRINT LPAREN lista_print RPAREN SEMI;
-
-lista_print ::= lista_print COMMA elemento_print
-              | elemento_print
-              ;
-
+lista_print ::= lista_print COMMA elemento_print | elemento_print;
 elemento_print ::= expresion | CTE_STRING;
-
 cycle ::= WHILE LPAREN expresion RPAREN DO required_body SEMI;
-
 condition ::= IF LPAREN expresion RPAREN required_body else_part SEMI;
-
-else_part ::= ELSE required_body
-            | /* epsilon */
-            ;
-
-/* --- FIN DE SECCIÓN CORREGIDA --- */
+else_part ::= ELSE required_body | /* epsilon */ ;
 
 /* Jerarquía de Expresiones */
-expresion ::= exp op_relacional exp
-            | exp
-            ;
-
+expresion ::= exp op_relacional exp | exp;
 op_relacional ::= GT | LT | NE;
-
-exp ::= exp PLUS termino
-      | exp MINUS termino
-      | termino
-      ;
-
-termino ::= termino TIMES factor
-          | termino DIV factor
-          | factor
-          ;
-
+exp ::= exp PLUS termino | exp MINUS termino | termino;
+termino ::= termino TIMES factor | termino DIV factor | factor;
 factor ::= LPAREN expresion RPAREN
-         | PLUS factor %prec UPLUS    // + unario
-         | MINUS factor %prec UMINUS   // - unario
+         | PLUS factor %prec UPLUS
+         | MINUS factor %prec UMINUS
          | cte
-         | f_call // Llamada a función como expresión
+         | f_call
          | ID
          ;
-
-/* Elementos Atómicos */
 cte ::= CTE_INT | CTE_FLOAT;
-
 f_call ::= ID LPAREN argumentos RPAREN;
-
-argumentos ::= lista_argumentos
-             | /* epsilon */
-             ;
-
-lista_argumentos ::= lista_argumentos COMMA expresion
-                   | expresion
-                   ;
+argumentos ::= lista_argumentos | /* epsilon */ ;
+lista_argumentos ::= lista_argumentos COMMA expresion | expresion;

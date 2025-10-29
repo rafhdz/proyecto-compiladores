@@ -24,10 +24,10 @@ import java_cup.runtime.Symbol;
     }
 %}
 
-/* ---- Declaración de Estados ---- */
+/* Declaración de Estados */
 %state COMMENT
 
-/* ---- Expresiones Regulares ---- */
+/* Expresiones Regulares */
 
 /* Espacios en blanco (se ignoran) */
 WHITESPACE = [ \t\r\n]+
@@ -49,7 +49,7 @@ CTE_STRING = \"[^\"]*\"
 
 %%
 
-/* ---- Reglas Léxicas ---- */
+/* Reglas del léxico */
 
 <YYINITIAL> {
     {WHITESPACE}    { /* Ignorar espacios en blanco */ }
@@ -72,7 +72,7 @@ CTE_STRING = \"[^\"]*\"
     "do"            { return symbol(sym.DO); }
     "print"         { return symbol(sym.PRINT); }
 
-    /* --- Operadores --- */
+    /* Operadores */
     "="             { return symbol(sym.ASSIGN); }
     "+"             { return symbol(sym.PLUS); }
     "-"             { return symbol(sym.MINUS); }
@@ -82,7 +82,7 @@ CTE_STRING = \"[^\"]*\"
     "<"             { return symbol(sym.LT); }
     "!="            { return symbol(sym.NE); }
 
-    /* --- Puntuación y Agrupación --- */
+    /* Puntuación y Agrupación */
     ";"             { return symbol(sym.SEMI); }
     ","             { return symbol(sym.COMMA); }
     ":"             { return symbol(sym.COLON); }
@@ -91,7 +91,7 @@ CTE_STRING = \"[^\"]*\"
     "{"             { return symbol(sym.LBRACE); }
     "}"             { return symbol(sym.RBRACE); }
 
-    /* --- Constantes e Identificadores --- */
+    /* Constantes e Identificadores */
     /* El orden importa: Float debe ir antes que Int */
     
     {CTE_FLOAT}     { return symbol(sym.CTE_FLOAT, Float.parseFloat(yytext())); }
@@ -107,7 +107,7 @@ CTE_STRING = \"[^\"]*\"
     {ID}            { return symbol(sym.ID, yytext()); }
 }
 
-/* ---- Reglas para el estado COMMENT ---- */
+/* Reglas para el estado COMMENT */
 <COMMENT> {
     /* Fin del comentario */
     "*/"            { yybegin(YYINITIAL); }
@@ -117,7 +117,7 @@ CTE_STRING = \"[^\"]*\"
     "*"             { /* Ignorar */ }
 }
 
-/* ---- Manejo de Errores ---- */
+/* Manejo de Errores */
 /* Cualquier otro caracter que no es reconocido */
 . { 
     System.err.println("Error Léxico: Carácter no reconocido '" + yytext() + 
