@@ -1,6 +1,6 @@
-Scanner and Parser
+# Para proyecto: Scanner and Parser
 
-## lineas para la compilación del programa
+## Lineas para la compilación del programa
 
 1. java -jar jflex-full-1.9.1.jar Scanner.flex
 
