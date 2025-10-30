@@ -1,0 +1,26 @@
+program TestExpr;
+// comentario en una linea
+var 
+    a, b, c : int;
+    res : float;
+
+/* Este es un comentario
+   de bloque que abarca
+   múltiples líneas.
+*/
+
+main
+{
+    a = 10;
+    b = 5;
+    c = 2;
+    
+    res = a + b * c; // res = 10 + (5 * 2) = 20.0
+    
+    res = (a + -b) * c; // res = (10 + -5) * 2 = 10.0
+    
+    if ( (a + b) != (c * 10) ) {
+        print("Son diferentes");
+    };
+}
+end

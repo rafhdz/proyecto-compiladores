@@ -36,7 +36,7 @@ WHITESPACE = [ \t\r\n]+
 LINE_COMMENT = \/\/[^\r\n]*
 
 /* Identificador */
-ID = [a-zA-Z][a-zA-Z0-9]*
+ID = [a-zA-Z][a-zA-Z0-9_]*
 
 /* Constante Entera */
 CTE_INT = [0-9]+
@@ -118,7 +118,7 @@ CTE_STRING = \"[^\"]*\"
 }
 
 /* Manejo de Errores */
-/* Cualquier otro caracter que no es reconocido */
+/* Para cualquier otro caracter que no es reconocido */
 . { 
     System.err.println("Error Léxico: Carácter no reconocido '" + yytext() + 
                        "' en línea " + (yyline + 1) + ", columna " + (yycolumn + 1));

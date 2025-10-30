@@ -6,7 +6,6 @@ parser code {:
     // Conectar el parser con el scanner
     Scanner scanner;
 
-    // <-- CAMBIO 1: Añadir esta bandera
     public boolean syntaxError = false;
 
     /** Constructor del Parser que recibe un Scanner. */
@@ -16,11 +15,10 @@ parser code {:
     }
 
     /**
-     * Método MEJORADO para el manejo de los errores de sintaxis.
+     * Método para el manejo de los errores de sintaxis.
      */
     public void report_error(String message, Object info) {
         
-        // <-- CAMBIO 2: Poner la bandera en true
         this.syntaxError = true; 
 
         StringBuilder m = new StringBuilder("[Error de Sintaxis]");
@@ -68,7 +66,7 @@ parser code {:
     }
 :};
 
-/* --- Declaraciones de Terminales (Tokens) --- */
+/* Declaraciones de Terminales (en torno a los Tokens) */
 terminal PROGRAM, MAIN, END, VAR, INT, FLOAT, VOID, IF, ELSE, WHILE, DO, PRINT;
 terminal ASSIGN, PLUS, MINUS, TIMES, DIV, GT, LT, NE;
 terminal SEMI, COMMA, COLON, LPAREN, RPAREN, LBRACE, RBRACE;
@@ -78,26 +76,25 @@ terminal String ID, CTE_STRING;
 terminal Integer CTE_INT;
 terminal Float CTE_FLOAT;
 
-/* --- Declaraciones de No-Terminales --- */
+/* Declaraciones de No-Terminales */
 non terminal programa, vars, lista_vars, declaracion, lista_ids, type;
 non terminal funcs, def_func, tipo_retorno, params, lista_params;
 non terminal required_body, optional_body, lista_sentencias, sentencia;
 non terminal assign, print, lista_print, elemento_print, cycle, condition, else_part;
 non terminal expresion, exp, op_relacional, termino, factor, cte, f_call, argumentos, lista_argumentos;
 
-/* --- Precedencia y Asociatividad --- */
+/* Precedencia y Asociatividad */
 precedence left GT, LT, NE;
 precedence left PLUS, MINUS;
 precedence left TIMES, DIV;
 precedence right UPLUS, UMINUS; 
 
-/* --- La Gramática --- */
+/* Gramática */
 
 start with programa;
 
 /* Estructura General del Programa */
 programa ::= PROGRAM ID SEMI vars funcs MAIN required_body END
-    // <-- CAMBIO 3: Añadir lógica condicional
     {: 
         if (!parser.syntaxError) {
             System.out.println("Análisis sintáctico completado con éxito.");
@@ -117,7 +114,6 @@ lista_vars ::= lista_vars declaracion
 
 declaracion ::= lista_ids COLON type SEMI
             | error SEMI 
-                // <-- CAMBIO 4 (Limpieza): Mensaje de recuperación simple
                 {: System.err.println("[Recuperación] Error en declaración. Descartando hasta ';'."); :}
             ;
 
@@ -144,7 +140,7 @@ lista_params ::= lista_params COMMA ID COLON type
                | ID COLON type
                ;
 
-/* Cuerpo y Sentencias (Usando la corrección anterior para el conflicto S/R) */
+/* Cuerpo y Sentencias */
 
 required_body ::= LBRACE RBRACE // Cuerpo vacío
                 | LBRACE lista_sentencias RBRACE
@@ -166,7 +162,6 @@ sentencia ::= assign
             | print
             // Recuperación de sentencia
             | error SEMI 
-                // <-- CAMBIO 5 (Limpieza): Mensaje de recuperación simple
                 {: System.err.println("[Recuperación] Error en sentencia. Descartando hasta ';'."); :}
             ;
 
