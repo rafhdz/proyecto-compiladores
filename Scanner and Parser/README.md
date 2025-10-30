@@ -1,6 +1,6 @@
 # Para proyecto: Scanner and Parser
 
-## Lineas para la compilación del programa
+## Lineas para la compilación del programa dentro de la terminal
 
 1. java -jar jflex-full-1.9.1.jar Scanner.flex
 
@@ -8,4 +8,4 @@
 
 3. javac -cp ".:java-cup-11b.jar" \*.java
 
-4. java -cp ".:java-cup-11b.jar" Main test.txt
+4. java -cp ".:java-cup-11b.jar" Main nombre_de_archivo_prueba.txt
