@@ -286,6 +286,10 @@ public class Parser extends java_cup.runtime.lr_parser {
 
 
 
+    // --- SEMÁNTICA ---
+    public semantico.FuncDir funcDir = new semantico.FuncDir();
+    public semantico.CuboSemantico cubo = new semantico.CuboSemantico();
+    public String currentFunction = "global";
     // Conectar el parser con el scanner
     Scanner scanner;
 
@@ -347,6 +351,8 @@ public class Parser extends java_cup.runtime.lr_parser {
     public Symbol do_parse() throws Exception {
         return this.parse();
     }
+
+    
 
 
 /** Cup generated class to encapsulate user supplied action code.*/

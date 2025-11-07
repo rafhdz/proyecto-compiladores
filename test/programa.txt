@@ -1,0 +1,36 @@
+program TestStmts;
+var 
+    x : int;
+    y : float;
+
+main
+{
+    // Asignación 
+    x = 10;
+    y = 5.5;
+    
+    // Condición 
+    if (x > 5) {
+        print("x es grande");
+    };
+    
+    // Condición - con else
+    if (y < 1.0) {
+        print("y es chico");
+    } else {
+        print("y no es chico");
+    };
+    
+    // Ciclo 
+    while (x > 0) do {
+        x = x - 1;
+    };
+    
+    // Impresión 
+    print("Valor final de x:", x, "Valor de y:", y + 1.0);
+    
+    // Llamada a función (f_call) 
+    // Asumiendo que 'miFunc' estuviera definida
+    miFunc(x, y); 
+}
+end
