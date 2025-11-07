@@ -1,36 +1,26 @@
-program TestStmts;
+program TestExpr;
+// comentario en una linea
 var 
-    x : int;
-    y : float;
+    a, b, c : int;
+    res : float;
+
+/* Este es un comentario
+   de bloque que abarca
+   múltiples líneas.
+*/
 
 main
 {
-    // Asignación 
-    x = 10;
-    y = 5.5;
+    a = 10;
+    b = 5;
+    c = 2;
     
-    // Condición 
-    if (x > 5) {
-        print("x es grande");
+    res = a + b * c; // res = 10 + (5 * 2) = 20.0
+    
+    res = (a + b) * c; // res = (10 + -5) * 2 = 10.0
+    
+    if ( (a + b) != (c * 10) ) {
+        print("Son diferentes");
     };
-    
-    // Condición - con else
-    if (y < 1.0) {
-        print("y es chico");
-    } else {
-        print("y no es chico");
-    };
-    
-    // Ciclo 
-    while (x > 0) do {
-        x = x - 1;
-    };
-    
-    // Impresión 
-    print("Valor final de x:", x, "Valor de y:", y + 1.0);
-    
-    // Llamada a función (f_call) 
-    // Asumiendo que 'miFunc' estuviera definida
-    miFunc(x, y); 
 }
 end

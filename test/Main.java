@@ -14,9 +14,9 @@ public class Main {
 
         try {
             parser.parse();  // Ejecuta el análisis
-            System.out.println("\n✅ Análisis completo sin errores.");
+            System.out.println("\nAnálisis completo sin errores.");
         } catch (Exception e) {
-            System.err.println("\n❌ Error durante el análisis:");
+            System.err.println("\nError durante el análisis:");
             e.printStackTrace();
         }
         // Mostrar directorio de funciones después del parseo
