@@ -1,115 +1,81 @@
 import java_cup.runtime.*;
 import java.io.Reader;
 
-/* Código inicial */
+/* ================================
+   BLOQUE DE CÓDIGO INICIAL
+   ================================ */
 parser code {:
-    // --- SEMÁNTICA ---
     public semantico.FuncDir funcDir = new semantico.FuncDir();
     public semantico.CuboSemantico cubo = new semantico.CuboSemantico();
     public String currentFunction = "global";
-    // Conectar el parser con el scanner
     Scanner scanner;
-
     public boolean syntaxError = false;
 
-    /** Constructor del Parser que recibe un Scanner. */
     public Parser(Scanner scanner) {
-        super(scanner); // Llama al constructor de java_cup.runtime.lr_parser
+        super(scanner);
         this.scanner = scanner;
     }
 
-    /**
-     * Método para el manejo de los errores de sintaxis.
-     */
     public void report_error(String message, Object info) {
-        
-        this.syntaxError = true; 
-
-        StringBuilder m = new StringBuilder("[Error de Sintaxis]");
-        
-        if (info instanceof java_cup.runtime.Symbol) {
-            java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
-            
-            // El scanner (yyline + 1) ya suma 1. No sumar de nuevo.
-            if (s.left >= 1) { // s.left es la línea
-                m.append(" en línea " + s.left);
-                if (s.right >= 1) { // s.right es la columna
-                    m.append(", columna " + s.right);
-                }
-            }
-
-            if (s.sym != sym.EOF) {
-                // Si el valor es null (como en SEMI), no lo imprimimos.
-                if (s.value != null) {
-                    m.append(". Se encontró un token inesperado: '" + s.value + "' (Tipo: " + sym.terminalNames[s.sym] + ")");
-                } else {
-                    m.append(". Se encontró un token inesperado: (Tipo: " + sym.terminalNames[s.sym] + ")");
-                }
-            } else {
-                m.append(". Se llegó al fin de archivo inesperadamente.");
-            }
-        }
-        
-        m.append("\n  > " + message.replace("\n", "\n  > "));
-        System.err.println(m);
+        this.syntaxError = true;
+        System.err.println("[Error de Sintaxis] " + message);
     }
 
-    /**
-     * Método para reportar errores fatales 
-     */
     public void report_fatal_error(String message, Object info) {
         report_error(message, info);
-        throw new RuntimeException("Error fatal de sintaxis. No se puede continuar.");
+        throw new RuntimeException("Error fatal de sintaxis.");
     }
 
-    /**
-     * Método principal para iniciar el análisis
-     */
-    public Symbol do_parse() throws Exception {
-        return this.parse();
-    }
-
-    
+    public Symbol do_parse() throws Exception { return this.parse(); }
 :};
 
-/* Declaraciones de Terminales (en torno a los Tokens) */
+/* ================================
+   TERMINALES
+   ================================ */
 terminal PROGRAM, MAIN, END, VAR, INT, FLOAT, VOID, IF, ELSE, WHILE, DO, PRINT;
 terminal ASSIGN, PLUS, MINUS, TIMES, DIV, GT, LT, NE;
 terminal SEMI, COMMA, COLON, LPAREN, RPAREN, LBRACE, RBRACE;
-// 'error' es implícito, no se declara.
 terminal UPLUS, UMINUS;
 terminal String ID, CTE_STRING;
 terminal Integer CTE_INT;
 terminal Float CTE_FLOAT;
 
-/* Declaraciones de No-Terminales */
-non terminal programa, vars, lista_vars, declaracion, lista_ids, type;
+/* ================================
+   NO TERMINALES
+   ================================ */
+non terminal programa, vars, lista_vars, declaracion;
+non terminal java.util.ArrayList<String> lista_ids;
+non terminal String type;
 non terminal funcs, def_func, tipo_retorno, params, lista_params;
 non terminal required_body, optional_body, lista_sentencias, sentencia;
 non terminal assign, print, lista_print, elemento_print, cycle, condition, else_part;
-non terminal expresion, exp, op_relacional, termino, factor, cte, f_call, argumentos, lista_argumentos;
+non terminal String expresion, exp, termino, factor, cte, op_relacional;
+non terminal f_call, argumentos, lista_argumentos;
 
-/* Precedencia y Asociatividad */
+/* ================================
+   PRECEDENCIA
+   ================================ */
 precedence left GT, LT, NE;
 precedence left PLUS, MINUS;
 precedence left TIMES, DIV;
-precedence right UPLUS, UMINUS; 
+precedence right UPLUS, UMINUS;
 
-/* Gramática */
-
+/* ================================
+   GRAMÁTICA
+   ================================ */
 start with programa;
 
-/* Estructura General del Programa */
-programa ::= PROGRAM ID SEMI vars funcs MAIN required_body END
-    {: 
-        if (!parser.syntaxError) {
-            System.out.println("Análisis sintáctico completado con éxito.");
-        } else {
-            System.out.println("Análisis completado con errores de sintaxis.");
-        }
+/* PROGRAMA */
+programa ::= PROGRAM ID SEMI
+    {: funcDir.addFunction("global", "void"); :}
+    vars funcs MAIN required_body END
+    {:
+        System.out.println("Análisis sintáctico completado con éxito.");
+        System.out.println("\n===== Estado Semántico =====");
+        funcDir.printDir();
     :};
 
-/* Declaración de Variables */
+/* VARIABLES */
 vars ::= VAR lista_vars
        | /* epsilon */
        ;
@@ -118,61 +84,71 @@ lista_vars ::= lista_vars declaracion
              | declaracion
              ;
 
-declaracion ::= lista_ids COLON type SEMI
-            | error SEMI 
-                {: System.err.println("[Recuperación] Error en declaración. Descartando hasta ';'."); :}
-            ;
+declaracion ::= lista_ids:ids COLON type:t SEMI
+    {:
+        for (String id : ids) {
+            funcDir.getVarTable(currentFunction).addVariable(id, t);
+        }
+    :}
+  | error SEMI {: System.err.println("[Recuperación] Error en declaración."); :}
+  ;
 
-lista_ids ::= lista_ids COMMA ID
-            | ID
-            ;
+/* LISTA DE IDS */
+lista_ids ::= lista_ids:l COMMA ID:id
+    {:
+        l.add(id);
+        RESULT = l;
+    :}
+  | ID:id
+    {:
+        java.util.ArrayList<String> nueva = new java.util.ArrayList<>();
+        nueva.add(id);
+        RESULT = nueva;
+    :}
+  ;
 
-type ::= INT | FLOAT;
+/* TIPOS */
+type ::= INT   {: RESULT = "int"; :}
+      | FLOAT {: RESULT = "float"; :}
+      ;
 
-/* Definición de Funciones */
+/* FUNCIONES */
 funcs ::= funcs def_func
         | /* epsilon */
         ;
-
 def_func ::= tipo_retorno ID LPAREN params RPAREN vars optional_body SEMI;
-
 tipo_retorno ::= VOID | type;
+params ::= lista_params | /* epsilon */ ;
+lista_params ::= lista_params COMMA ID COLON type | ID COLON type;
 
-params ::= lista_params
-         | /* epsilon */
-         ;
+/* CUERPOS */
+required_body ::= LBRACE RBRACE | LBRACE lista_sentencias RBRACE;
+optional_body ::= LBRACE RBRACE | LBRACE lista_sentencias RBRACE | /* epsilon */ ;
+lista_sentencias ::= lista_sentencias sentencia | sentencia;
 
-lista_params ::= lista_params COMMA ID COLON type
-               | ID COLON type
-               ;
-
-/* Cuerpo y Sentencias */
-
-required_body ::= LBRACE RBRACE // Cuerpo vacío
-                | LBRACE lista_sentencias RBRACE
-                ;
-
-optional_body ::= LBRACE RBRACE // Cuerpo vacío
-                | LBRACE lista_sentencias RBRACE
-                | /* epsilon */ // Sin cuerpo
-                ;
-
-lista_sentencias ::= lista_sentencias sentencia
-                   | sentencia // Debe tener al menos una
-                   ;
-
+/* SENTENCIAS */
 sentencia ::= assign
             | condition
             | cycle
             | f_call SEMI
             | print
-            // Recuperación de sentencia
-            | error SEMI 
-                {: System.err.println("[Recuperación] Error en sentencia. Descartando hasta ';'."); :}
+            | error SEMI {: System.err.println("[Recuperación] Error en sentencia."); :}
             ;
 
-/* Definición de las Sentencias */
-assign ::= ID ASSIGN expresion SEMI;
+/* ASIGNACIÓN */
+assign ::= ID:id ASSIGN expresion:expr SEMI
+    {:
+        semantico.VarInfo v = funcDir.lookupVariable(id, currentFunction);
+        if (v == null)
+            System.err.println("[Error semántico] Variable '" + id + "' no declarada.");
+        else {
+            String res = cubo.checkAssignment(v.getTipo(), expr);
+            if (res.equals("ERROR"))
+                System.err.println("[Error semántico] Asignación incompatible: " + v.getTipo() + " = " + expr);
+        }
+    :};
+
+/* PRINT / CONTROL */
 print ::= PRINT LPAREN lista_print RPAREN SEMI;
 lista_print ::= lista_print COMMA elemento_print | elemento_print;
 elemento_print ::= expresion | CTE_STRING;
@@ -180,19 +156,45 @@ cycle ::= WHILE LPAREN expresion RPAREN DO required_body SEMI;
 condition ::= IF LPAREN expresion RPAREN required_body else_part SEMI;
 else_part ::= ELSE required_body | /* epsilon */ ;
 
-/* Jerarquía de Expresiones */
-expresion ::= exp op_relacional exp | exp;
-op_relacional ::= GT | LT | NE;
-exp ::= exp PLUS termino | exp MINUS termino | termino;
-termino ::= termino TIMES factor | termino DIV factor | factor;
-factor ::= LPAREN expresion RPAREN
-         | PLUS factor %prec UPLUS
-         | MINUS factor %prec UMINUS
-         | cte
-         | f_call
-         | ID
+/* EXPRESIONES */
+expresion ::= exp:e1 op_relacional:op exp:e2
+    {: RESULT = cubo.checkOperation(op, e1, e2); :}
+  | exp:e {: RESULT = e; :}
+  ;
+
+op_relacional ::= GT {: RESULT = ">"; :}
+                | LT {: RESULT = "<"; :}
+                | NE {: RESULT = "!="; :}
+                ;
+
+exp ::= exp:e1 PLUS termino:e2
+    {: RESULT = cubo.checkOperation("+", e1, e2); :}
+  | exp:e1 MINUS termino:e2
+    {: RESULT = cubo.checkOperation("-", e1, e2); :}
+  | termino:e {: RESULT = e; :}
+  ;
+
+termino ::= termino:t1 TIMES factor:t2
+    {: RESULT = cubo.checkOperation("*", t1, t2); :}
+  | termino:t1 DIV factor:t2
+    {: RESULT = cubo.checkOperation("/", t1, t2); :}
+  | factor:f {: RESULT = f; :}
+  ;
+
+factor ::= LPAREN expresion:e RPAREN {: RESULT = e; :}
+         | cte:c {: RESULT = c; :}
+         | ID:id
+            {:
+                semantico.VarInfo v = funcDir.lookupVariable(id, currentFunction);
+                if (v == null) RESULT = "ERROR";
+                else RESULT = v.getTipo();
+            :}
          ;
-cte ::= CTE_INT | CTE_FLOAT;
+
+cte ::= CTE_INT {: RESULT = "int"; :}
+     | CTE_FLOAT {: RESULT = "float"; :}
+     ;
+
 f_call ::= ID LPAREN argumentos RPAREN;
 argumentos ::= lista_argumentos | /* epsilon */ ;
 lista_argumentos ::= lista_argumentos COMMA expresion | expresion;
