@@ -1,7 +1,7 @@
 program TestExpr;
 // comentario en una linea
 var 
-    a, c : int;
+    a, b, c : int;
     res : float;
 
 /* Este es un comentario
