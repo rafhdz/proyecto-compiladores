@@ -13,12 +13,12 @@ main
 {
     a = 10;
     b = 5;
-    c = 3;
+    c = 2;
     
     res = a + b * c; // res = 10 + (5 * 2) = 20.0
     
-    res = (a + b) * c; // res = (10 + -5) * 2 = 10.0
-    
+    res = (a + -b) * c; // res = (10 + -5) * 2 = 10.0
+   
     if ( (a + b) != (c * 10) ) {
         print("Son diferentes");
     };

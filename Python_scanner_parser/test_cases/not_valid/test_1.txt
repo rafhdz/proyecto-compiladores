@@ -1,0 +1,4 @@
+program ErrorEstructura // <-- Falta ; aquí
+var x : int;
+main { }
+end

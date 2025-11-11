@@ -1,0 +1,24 @@
+program TestFuncs;
+var g : int; // Variable global
+
+// Función con parámetros, variables locales y cuerpo
+int funccontodo(a:int, b:float)
+var
+    x : int;
+{
+    x = a + 1;
+    print(x, b);
+}; 
+
+// Función sin parámetros y sin cuerpo 
+void funcsincuerpo();
+
+// Función con cuerpo vacío
+void funccuerpovacio()
+{
+};
+
+main
+{
+}
+end
