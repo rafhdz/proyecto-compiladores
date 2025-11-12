@@ -251,15 +251,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitProgram" ):
                 listener.exitProgram(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitProgram" ):
                 return visitor.visitProgram(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -339,15 +336,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitGlobalVarSection" ):
                 listener.exitGlobalVarSection(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitGlobalVarSection" ):
                 return visitor.visitGlobalVarSection(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -413,15 +407,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitVarDecl" ):
                 listener.exitVarDecl(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitVarDecl" ):
                 return visitor.visitVarDecl(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -478,15 +469,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitIdList" ):
                 listener.exitIdList(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitIdList" ):
                 return visitor.visitIdList(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -542,15 +530,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitFunctionSection" ):
                 listener.exitFunctionSection(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitFunctionSection" ):
                 return visitor.visitFunctionSection(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -617,15 +602,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitFuncDecl" ):
                 listener.exitFuncDecl(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitFuncDecl" ):
                 return visitor.visitFuncDecl(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -707,15 +689,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitFuncVarSection" ):
                 listener.exitFuncVarSection(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitFuncVarSection" ):
                 return visitor.visitFuncVarSection(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -780,15 +759,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitParamList" ):
                 listener.exitParamList(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitParamList" ):
                 return visitor.visitParamList(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -850,15 +826,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitParam" ):
                 listener.exitParam(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitParam" ):
                 return visitor.visitParam(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -910,15 +883,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitType" ):
                 listener.exitType(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitType" ):
                 return visitor.visitType(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -976,15 +946,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitBlock" ):
                 listener.exitBlock(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitBlock" ):
                 return visitor.visitBlock(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -1056,15 +1023,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitStmt" ):
                 listener.exitStmt(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitStmt" ):
                 return visitor.visitStmt(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -1147,15 +1111,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitAssignStmt" ):
                 listener.exitAssignStmt(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitAssignStmt" ):
                 return visitor.visitAssignStmt(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -1226,15 +1187,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitIfStmt" ):
                 listener.exitIfStmt(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitIfStmt" ):
                 return visitor.visitIfStmt(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -1317,15 +1275,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitWhileStmt" ):
                 listener.exitWhileStmt(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitWhileStmt" ):
                 return visitor.visitWhileStmt(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -1392,15 +1347,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitPrintStmt" ):
                 listener.exitPrintStmt(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitPrintStmt" ):
                 return visitor.visitPrintStmt(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -1467,15 +1419,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitPrintArgList" ):
                 listener.exitPrintArgList(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitPrintArgList" ):
                 return visitor.visitPrintArgList(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
@@ -2291,15 +2240,12 @@ class PatitoParser ( Parser ):
             if hasattr( listener, "exitAtom" ):
                 listener.exitAtom(self)
 
-<<<<<<< HEAD
-=======
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitAtom" ):
                 return visitor.visitAtom(self)
             else:
                 return visitor.visitChildren(self)
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 
