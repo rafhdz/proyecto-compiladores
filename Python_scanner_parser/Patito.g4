@@ -14,11 +14,7 @@ program
 
 // ======================
 // 2. Sección de variables globales
-<<<<<<< HEAD
-//    Soporta:
-=======
 //    Ejemplo en el language Patito:
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 //    var
 //        a, b, c : int;
 //        x : float;
@@ -37,11 +33,7 @@ idList
 
 // ======================
 // 3. Funciones
-<<<<<<< HEAD
-// Se debe aceptar:
-=======
 //  Ejemplos:
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 //  - int func(a:int, b:float) var x:int; { ... };
 //  - void funcsincuerpo();
 //  - void funccuerpovacio() { };
@@ -57,20 +49,12 @@ funcDecl
       SEMI
     ;
 
-<<<<<<< HEAD
-// vars locales dentro de la función (misma sintaxis que globales)
-=======
 // vars locales dentro de la función 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 funcVarSection
     : VAR varDecl+
     ;
 
-<<<<<<< HEAD
-// e.g. parámetros: a:int, b:float
-=======
 // parámetros
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 paramList
     : param (COMMA param)*
     ;
@@ -93,10 +77,6 @@ block
     : LBRACE stmt* RBRACE
     ;
 
-<<<<<<< HEAD
-// cada stmt en tus tests termina con ';'
-=======
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 stmt
     : assignStmt
     | ifStmt
@@ -110,10 +90,7 @@ assignStmt
     : ID ASSIGN expr SEMI
     ;
 
-<<<<<<< HEAD
-=======
 // Para ambos casos
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 // if (cond) { ... };
 // if (cond) { ... } else { ... };
 ifStmt
@@ -134,11 +111,7 @@ printArgList
     : expr (COMMA expr)*
     ;
 
-<<<<<<< HEAD
-// llamada a función como statement: miFunc(x, y);
-=======
 // llamada a función como statement como: miFunc(x, y);
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 funcCallStmt
     : funcCall SEMI
     ;
@@ -230,11 +203,7 @@ RPAREN  : ')';
 LBRACE  : '{';
 RBRACE  : '}';
 
-<<<<<<< HEAD
-// Literales
-=======
 // Expresiones regulares
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 CTE_FLOAT
     : DIGIT+ '.' DIGIT+
     ;

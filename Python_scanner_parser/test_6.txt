@@ -1,27 +1,55 @@
-program TestExpr;
-// comentario en una linea
+program TestIfWhile;
 
 var 
-    a, b, c : int;
+    a, b, c, i : int;
     res : float;
-
-/* Este es un comentario
-   de bloque que abarca
-   múltiples líneas.
-*/
 
 main
 {
-    a = 10;
-    b = 5;
-    c = 2;
-    
-    res = a + b * c; // res = 10 + (5 * 2) = 20.0
-    
-    res = (a + -b) * c; // res = (10 + -5) * 2 = 10.0
-   
-    if ( (a + b) != (c * 10) ) {
-        print("Son diferentes");
+    a = 5;
+    b = 10;
+    c = 15;
+    i = 0;
+
+    print("=== INICIO DEL PROGRAMA ===");
+
+    // Caso 1: if simple
+    if (a < b) {
+        print("a es menor que b");
     };
+
+    // Caso 2: if con else
+    if (c < b) {
+        print("c es menor que b");
+    } else {
+        print("c es mayor o igual que b");
+    };
+
+    // Caso 3: while simple con incremento
+    while (i < 3) do {
+        print("Iteración:", i);
+        i = i + 1;
+    };
+
+    // Caso 4: while con operación anidada
+    i = 0;
+    while (i != 2) do {
+        res = (a + b * c) / (i + 1);
+        print("Resultado parcial:", res);
+        i = i + 1;
+    };
+
+    // Caso 5: if dentro de while
+    i = 0;
+    while (i < 5) do {
+        if (i != 2) {
+            print("i no es 2:", i);
+        } else {
+            print("Encontrado el 2");
+        };
+        i = i + 1;
+    };
+
+    print("=== FIN DEL PROGRAMA ===");
 }
 end

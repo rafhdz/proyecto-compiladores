@@ -7,22 +7,19 @@ class SemanticError(Exception):
 class VarInfo:
     def __init__(self, var_type):
         self.var_type = var_type
-        self.addr = None  # placeholder para memoria virtual futura
+        self.addr = None
 
 
 class FuncInfo:
     def __init__(self, return_type):
         self.return_type = return_type
-        self.params = []          # lista de (name, type)
-        self.var_table = {}       # name -> VarInfo
+        self.params = []
+        self.var_table = {}
 
 
 class FuncDir:
     def __init__(self):
-        # scope global como función virtual
-        self.funcs = {
-            "global": FuncInfo("void")
-        }
+        self.funcs = {"global": FuncInfo("void")}
         self.current = "global"
 
     def add_function(self, name, return_type):
@@ -40,7 +37,7 @@ class FuncDir:
     def add_param(self, name, param_type):
         func = self.funcs[self.current]
         if name in func.var_table:
-            raise SemanticError(f"Parámetro '{name}' duplicado en función '{self.current}'")
+            raise SemanticError(f"Parámetro '{name}' duplicado en '{self.current}'")
         func.params.append((name, param_type))
         func.var_table[name] = VarInfo(param_type)
 
@@ -51,7 +48,6 @@ class FuncDir:
 
 
 class VarTableHelper:
-    """Ayuda a declarar/buscar variables respetando scope actual y global."""
     def __init__(self, funcdir: FuncDir):
         self.funcdir = funcdir
 
@@ -62,38 +58,32 @@ class VarTableHelper:
         func.var_table[name] = VarInfo(var_type)
 
     def lookup(self, name):
-        # current scope
         f = self.funcdir.get_current_funcinfo()
         if name in f.var_table:
             return f.var_table[name]
-
-        # global scope
         g = self.funcdir.funcs["global"]
         if name in g.var_table:
             return g.var_table[name]
-
-        # si no existe: reporta error, pero NO truena
         print(f"[Error semántico] Variable '{name}' no declarada.")
         return VarInfo("ERROR")
 
 
 class SemanticCube:
     def __init__(self):
-        # operador -> izq -> der -> result
         int_ops = {'int': 'int', 'float': 'float'}
         float_ops = {'int': 'float', 'float': 'float'}
         self.cube = {
             '+': {'int': int_ops, 'float': float_ops},
             '-': {'int': int_ops, 'float': float_ops},
             '*': {'int': int_ops, 'float': float_ops},
-            '/': {'int': float_ops, 'float': float_ops},  # división regresa float
+            '/': {'int': float_ops, 'float': float_ops},
             '>': {'int': {'int': 'int', 'float': 'int'}, 'float': {'int': 'int', 'float': 'int'}},
             '<': {'int': {'int': 'int', 'float': 'int'}, 'float': {'int': 'int', 'float': 'int'}},
             '!=': {'int': {'int': 'int', 'float': 'int'}, 'float': {'int': 'int', 'float': 'int'}},
+            '==': {'int': {'int': 'int', 'float': 'int'}, 'float': {'int': 'int', 'float': 'int'}}
         }
 
     def check_op(self, op, t1, t2):
-        # si ya venía error, propagamos
         if t1 == 'ERROR' or t2 == 'ERROR':
             return 'ERROR'
         try:
@@ -103,7 +93,6 @@ class SemanticCube:
             return 'ERROR'
 
     def check_assign(self, target_type, expr_type):
-        # float = int permitido
         if target_type == 'float' and expr_type == 'int':
             return
         if target_type != expr_type:
