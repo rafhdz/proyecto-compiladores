@@ -39,7 +39,6 @@ class FuncDir:
 
     def add_param(self, name, param_type):
         func = self.funcs[self.current]
-        # también lo registramos como variable local
         if name in func.var_table:
             raise SemanticError(f"Parámetro '{name}' duplicado en función '{self.current}'")
         func.params.append((name, param_type))
@@ -63,7 +62,6 @@ class VarTableHelper:
         func.var_table[name] = VarInfo(var_type)
 
     def lookup(self, name):
-<<<<<<< HEAD
         # current scope
         f = self.funcdir.get_current_funcinfo()
         if name in f.var_table:
@@ -77,64 +75,24 @@ class VarTableHelper:
         # si no existe: reporta error, pero NO truena
         print(f"[Error semántico] Variable '{name}' no declarada.")
         return VarInfo("ERROR")
-=======
-        # busca en current
-        func = self.funcdir.get_current_funcinfo()
-        if name in func.var_table:
-            return func.var_table[name]
-        # busca en global
-        glob = self.funcdir.funcs["global"]
-        if name in glob.var_table:
-            return glob.var_table[name]
-        raise SemanticError(f"Variable '{name}' no declarada")
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 
 class SemanticCube:
     def __init__(self):
         # operador -> izq -> der -> result
-        int_ops = {
-            'int': 'int',
-            'float': 'float'
-        }
-        float_ops = {
-            'int': 'float',
-            'float': 'float'
-        }
-        # base
+        int_ops = {'int': 'int', 'float': 'float'}
+        float_ops = {'int': 'float', 'float': 'float'}
         self.cube = {
-            '+': {
-                'int': int_ops,
-                'float': float_ops,
-            },
-            '-': {
-                'int': int_ops,
-                'float': float_ops,
-            },
-            '*': {
-                'int': int_ops,
-                'float': float_ops,
-            },
-            '/': {
-                'int': float_ops,   # división regresa float
-                'float': float_ops,
-            },
-            '>': {
-                'int': {'int': 'int', 'float': 'int'},
-                'float': {'int': 'int', 'float': 'int'},
-            },
-            '<': {
-                'int': {'int': 'int', 'float': 'int'},
-                'float': {'int': 'int', 'float': 'int'},
-            },
-            '!=': {
-                'int': {'int': 'int', 'float': 'int'},
-                'float': {'int': 'int', 'float': 'int'},
-            },
+            '+': {'int': int_ops, 'float': float_ops},
+            '-': {'int': int_ops, 'float': float_ops},
+            '*': {'int': int_ops, 'float': float_ops},
+            '/': {'int': float_ops, 'float': float_ops},  # división regresa float
+            '>': {'int': {'int': 'int', 'float': 'int'}, 'float': {'int': 'int', 'float': 'int'}},
+            '<': {'int': {'int': 'int', 'float': 'int'}, 'float': {'int': 'int', 'float': 'int'}},
+            '!=': {'int': {'int': 'int', 'float': 'int'}, 'float': {'int': 'int', 'float': 'int'}},
         }
 
     def check_op(self, op, t1, t2):
-<<<<<<< HEAD
         # si ya venía error, propagamos
         if t1 == 'ERROR' or t2 == 'ERROR':
             return 'ERROR'
@@ -143,14 +101,7 @@ class SemanticCube:
         except KeyError:
             print(f"[Error semántico] Tipos incompatibles: {t1} {op} {t2}")
             return 'ERROR'
-        
-=======
-        try:
-            return self.cube[op][t1][t2]
-        except KeyError:
-            raise SemanticError(f"Tipos incompatibles: {t1} {op} {t2}")
 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
     def check_assign(self, target_type, expr_type):
         # float = int permitido
         if target_type == 'float' and expr_type == 'int':

@@ -4,10 +4,7 @@ from PatitoLexer import PatitoLexer
 from PatitoParser import PatitoParser
 from PatitoSemanticListener import PatitoSemanticListener
 from antlr4.error.ErrorListener import ErrorListener
-<<<<<<< HEAD
-=======
 from semantics import SemanticError
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
 
 class PatitoErrorListener(ErrorListener):
     def __init__(self):
@@ -35,38 +32,25 @@ def main():
 
     tree = parser.program()
 
-<<<<<<< HEAD
-=======
-    # si hay errores de sintaxis, los mostramos 
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
+    # mostrar errores de sintaxis
     if syn_err.errors:
         print("Errores de sintaxis:")
         for e in syn_err.errors:
             print("  ", e)
-<<<<<<< HEAD
-        # NO hacemos return: seguimos para ver cuádruplos / semántica
-
-    sem_listener = PatitoSemanticListener()
-    walker = ParseTreeWalker()
-    walker.walk(sem_listener, tree)
-
-    print("\nAnálisis terminado.")
-
-    print("\n=== CUADRUPLOS GENERADOS ===")
-    for i, q in enumerate(sem_listener.quadruples):
-        print(f"{i:03}  {q}")
-=======
-    # continuar con semántica para verificar funcionalidad
 
     # semántica
     sem_listener = PatitoSemanticListener()
     walker = ParseTreeWalker()
     try:
         walker.walk(sem_listener, tree)
-        print("Análisis sintáctico y semántico completado.")
+        print("\n Análisis sintáctico y semántico completado.")
     except SemanticError as se:
-        print(" Error semántico:", se)
->>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
+        print("\n Error semántico:", se)
+
+    # Cuádruplos generados
+    print("\n=== CUADRUPLOS GENERADOS ===")
+    for i, q in enumerate(sem_listener.quadruples):
+        print(f"{i:03}  {q}")
 
 if __name__ == "__main__":
     main()
