@@ -1,7 +1,11 @@
 program TestExpr;
 // comentario en una linea
 var 
+<<<<<<< HEAD
     a, b, c : int;
+=======
+    a, b,  : int;
+>>>>>>> 4353e9d451b2578c13b1923876e7aeabfcb60379
     res : float;
 
 /* Este es un comentario
