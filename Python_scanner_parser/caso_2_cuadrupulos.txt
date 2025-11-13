@@ -1,0 +1,20 @@
+program TestSimpleIf;
+
+var 
+    A, B, C, D, E : int;
+
+main
+{
+    if ( (A + B) > (C * D) )
+    {
+        A = B + C;
+    }
+    else
+    {
+        C = D - A;
+        print(C);
+    };
+
+    B = D + E;
+}
+end

@@ -1,0 +1,39 @@
+program TestIfWhile;
+
+var 
+    A, B, C, D, E : int;
+
+main
+{
+    // IF (A * B - C > D + E)
+    if ( (A * B - C) > (D + E) ) 
+    {
+        // IF (B > C + D)
+        if ( B > (C + D) )
+        {
+            // WHILE (A + B > 0)
+            while ( (A + B) > 0 ) do
+            {
+                A = A - C;
+                print(A, B + C);
+            };
+        }
+        else
+        {
+            B = C + D;
+        };
+    }
+    else
+    {
+        // WHILE (A > B)
+        while (A > B) do
+        {
+            B = B - C;
+            print(C);
+        };
+    };
+    
+    B = C * D;
+    A = B + C * D;
+}
+end
