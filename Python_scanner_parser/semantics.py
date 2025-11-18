@@ -1,5 +1,3 @@
-# semantics.py
-
 class SemanticError(Exception):
     pass
 
