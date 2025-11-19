@@ -1,4 +1,0 @@
-program pvars;
-var x : int;
-main { }
-end

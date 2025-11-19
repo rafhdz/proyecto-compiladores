@@ -1,5 +1,0 @@
-program Comment;
-/* Este comentario
-   nunca se cierra.
-main { }
-end

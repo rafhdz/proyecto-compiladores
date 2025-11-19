@@ -1,5 +1,0 @@
-program UntermString;
-main {
-    print("Hola mundo); // <-- Falta " al final
-}
-end
