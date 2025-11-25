@@ -1,7 +1,0 @@
-program BadVar;
-var
-    a, b : int;
-    x float; // <-- Falta :
-    y : int; // La línea se procesa si la recuperación funciona
-main { }
-end

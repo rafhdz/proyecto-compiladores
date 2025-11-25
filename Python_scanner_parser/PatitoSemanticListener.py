@@ -39,6 +39,36 @@ class PatitoSemanticListener(PatitoListener):
         self.goto_main_index = None
 
     # ============================================================
+    # DEBUG / SIMBOLOGÍA
+    # ============================================================
+    def build_symbol_table(self):
+        """
+        Crea un mapa direccion -> nombre amigable para imprimir cuádruplos
+        con variables/constantes/temporales.
+        """
+        addr_to_name = {}
+
+        # Variables globales
+        for name, vinfo in self.funcdir.functions["global"]["vars"].items():
+            addr_to_name[vinfo.address] = f"global.{name}"
+
+        # Variables locales de cada función
+        for fname, finfo in self.funcdir.functions.items():
+            if fname == "global":
+                continue
+            for name, vinfo in finfo["vars"].items():
+                addr_to_name[vinfo.address] = f"{fname}.{name}"
+
+        # Constantes (valor -> addr está en self.constants)
+        for value, addr in self.constants.items():
+            addr_to_name[addr] = repr(value)
+
+        # Temporales (guardados por TempManager)
+        addr_to_name.update(self.temp_manager.addr_to_name)
+
+        return addr_to_name
+
+    # ============================================================
     # CONSTANTES
     # ============================================================
     def get_or_add_constant(self, value, vtype):
@@ -246,9 +276,13 @@ class PatitoSemanticListener(PatitoListener):
     # ============================================================
     def exitPrintStmt(self, ctx):
         if ctx.printArgList():
-            for _ in range(len(ctx.printArgList().expr())):
-                addr = self.operand_stack.pop()
+            count = len(ctx.printArgList().expr())
+            addrs = []
+            for _ in range(count):
+                addrs.append(self.operand_stack.pop())
                 self.type_stack.pop()
+            # Se agregan en orden de aparición (la pila invierte el orden)
+            for addr in reversed(addrs):
                 self.quadruples.append(
                     Quadruple(OPCODES["PRINT"], addr, None, None)
                 )

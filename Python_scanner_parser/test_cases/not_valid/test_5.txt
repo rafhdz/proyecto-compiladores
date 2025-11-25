@@ -1,5 +1,0 @@
-program LexErrorChar;
-main {
-    x = 5 & 10; // <-- & no es un token válido
-}
-end

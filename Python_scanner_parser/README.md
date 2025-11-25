@@ -17,3 +17,13 @@ En tiempo de ejecución:
 - Los segmentos globales viven durante toda la corrida.
 - Las constantes se cargan al inicializar la VM y son de solo lectura.
 - Cada llamada a función crea un `ActivationRecord` nuevo con sus segmentos `loc_*` y `temp_*`; el segmento global no se toca.
+
+### Probar la Máquina Virtual
+
+Ejecuta el pipeline completo con el programa de ejemplo:
+
+```
+python main.py test_cases/valid/test_vm_pipeline.txt
+```
+
+Se imprimen los cuádruplos generados y la salida del programa ejecutado en la VM.

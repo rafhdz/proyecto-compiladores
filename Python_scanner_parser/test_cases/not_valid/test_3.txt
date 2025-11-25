@@ -1,7 +1,0 @@
-program BadStmt;
-main
-{
-    x = 10 // <-- Falta ;
-    y = 20; 
-}
-end

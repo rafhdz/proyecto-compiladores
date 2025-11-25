@@ -1,0 +1,26 @@
+program DemoVM;
+var
+    a, b : int;
+    x : float;
+
+main
+{
+    a = 2;
+    b = 3;
+    x = 1.5;
+
+    // Expresión aritmética + relacional
+    if ((a + b * 2) > 6) {
+        print("rama true");
+    } else {
+        print("rama false");
+    };
+
+    // Ciclo simple
+    while (b > 0) do {
+        b = b - 1;
+    };
+
+    print("resultado", a + b, "x", x + 0.5);
+}
+end

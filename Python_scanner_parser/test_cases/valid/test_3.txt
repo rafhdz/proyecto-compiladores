@@ -1,7 +1,0 @@
-program TestExpresiones;
-var
-    a, b, c : int;
-    x : float;
-main
-{}
-end
