@@ -1,4 +1,3 @@
-# VarTableHelper.py
 from FuncDir import FuncDir  
 
 class VarTableHelper:

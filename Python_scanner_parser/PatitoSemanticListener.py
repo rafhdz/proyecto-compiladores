@@ -2,7 +2,7 @@ from PatitoListener import PatitoListener
 from PatitoParser import PatitoParser
 from FuncDir import FuncDir
 from VarTableHelper import VarTableHelper
-from semantics import SemanticCube
+from semantics import SemanticCube, SemanticError
 from virtual_memory import VirtualMemory
 from TempManager import TempManager
 from quads import Quadruple
@@ -36,6 +36,7 @@ class PatitoSemanticListener(PatitoListener):
         # === CUADRUPLOS ===
         self.quadruples = []
         self.temp_manager = TempManager(self.memory)
+        self.goto_main_index = None
 
     # ============================================================
     # CONSTANTES
@@ -47,6 +48,29 @@ class PatitoSemanticListener(PatitoListener):
         addr = self.memory.alloc_const(vtype)
         self.constants[value] = addr
         return addr
+
+    # ============================================================
+    # PROGRAMA Y BLOQUES
+    # ============================================================
+    def enterProgram(self, ctx):
+        # Salto al inicio de main para omitir el código de funciones
+        self.quadruples.append(Quadruple(OPCODES["GOTO"], None, None, None))
+        self.goto_main_index = len(self.quadruples) - 1
+
+    def enterBlock(self, ctx):
+        parent = ctx.parentCtx
+
+        # Inicio del bloque main
+        if isinstance(parent, PatitoParser.ProgramContext):
+            if self.goto_main_index is not None:
+                self.quadruples[self.goto_main_index].res = len(self.quadruples)
+
+        # Inicio de un bloque de función
+        elif isinstance(parent, PatitoParser.FuncDeclContext):
+            fname = parent.ID().getText()
+            self.funcdir.set_start(fname, len(self.quadruples))
+            # reiniciamos el contador de temporales para claridad
+            self.temp_manager.counter = 0
 
     # ============================================================
     # DECLARACIONES
@@ -62,6 +86,7 @@ class PatitoSemanticListener(PatitoListener):
         fname = ctx.ID().getText()
         self.funcdir.add_function(fname, ret_type)
 
+        # Manejo de parámetros (esto sí se queda aquí)
         if ctx.paramList():
             for p in ctx.paramList().param():
                 self.funcdir.add_param(
@@ -69,13 +94,13 @@ class PatitoSemanticListener(PatitoListener):
                     p.type_().getText()
                 )
 
-        if ctx.funcVarSection():
-            for v in ctx.funcVarSection().varDecl():
-                vtype = v.type_().getText()
-                for name in [x.getText() for x in v.idList().ID()]:
-                    self.vartab.add_var(name, vtype)
-
     def exitFuncDecl(self, ctx):
+        fname = ctx.ID().getText()
+        finfo = self.funcdir.lookup_function(fname)
+        if finfo["start"] is None:
+            self.funcdir.set_start(fname, len(self.quadruples))
+
+        self.quadruples.append(Quadruple(OPCODES["ENDFUNC"], None, None, None))
         self.funcdir.set_global()
 
     # ============================================================
@@ -205,6 +230,17 @@ class PatitoSemanticListener(PatitoListener):
             Quadruple(OPCODES["="], expr_addr, None, vinfo.address)
         )
 
+        # Si asignamos al nombre de la función actual, lo tratamos como retorno
+        if (
+            self.funcdir.current_function != "global"
+            and name == self.funcdir.current_function
+        ):
+            finfo = self.funcdir.lookup_function(name)
+            if finfo["ret"] == "void":
+                raise SemanticError("Una función void no puede retornar un valor")
+            self.quadruples.append(Quadruple(OPCODES["RET"], expr_addr, None, None))
+            self.funcdir.mark_return(name)
+
     # ============================================================
     # PRINT
     # ============================================================
@@ -220,6 +256,73 @@ class PatitoSemanticListener(PatitoListener):
             self.quadruples.append(
                 Quadruple(OPCODES["PRINT"], None, None, None)
             )
+
+    # ============================================================
+    # LLAMADAS A FUNCIÓN
+    # ============================================================
+    def exitFuncCall(self, ctx):
+        fname = ctx.ID().getText()
+        finfo = self.funcdir.lookup_function(fname)
+
+        # ERA
+        self.quadruples.append(Quadruple(OPCODES["ERA"], None, None, fname))
+
+        # Parámetros
+        arg_exprs = ctx.argList().expr() if ctx.argList() else []
+        arg_count = len(arg_exprs)
+        expected_count = len(finfo["params"])
+
+        if arg_count != expected_count:
+            raise SemanticError(
+                f"Número de argumentos inválido para '{fname}': "
+                f"se esperaban {expected_count}, se recibieron {arg_count}"
+            )
+
+        if arg_count:
+            arg_addrs = self.operand_stack[-arg_count:]
+            arg_types = self.type_stack[-arg_count:]
+        else:
+            arg_addrs, arg_types = [], []
+
+        for idx, (addr, ty) in enumerate(zip(arg_addrs, arg_types)):
+            expected = finfo["params"][idx]["type"]
+            self.cube.check_assign(expected, ty)
+            target_addr = finfo["params"][idx]["address"]
+            self.quadruples.append(
+                Quadruple(OPCODES["PARAM"], addr, None, target_addr)
+            )
+
+        # limpiar de las pilas los argumentos
+        for _ in range(arg_count):
+            self.operand_stack.pop()
+            self.type_stack.pop()
+
+        # GOSUB
+        if finfo["start"] is None:
+            raise SemanticError(f"Función '{fname}' sin cuerpo definido")
+
+        self.quadruples.append(
+            Quadruple(OPCODES["GOSUB"], fname, None, finfo["start"])
+        )
+
+        # Valor de retorno
+        parent = ctx.parentCtx
+        is_stmt_call = isinstance(parent, PatitoParser.FuncCallStmtContext)
+
+        if finfo["ret"] != "void":
+            _, temp_addr = self.temp_manager.new_temp(finfo["ret"])
+            ret_addr = finfo["return_addr"]
+            self.quadruples.append(
+                Quadruple(OPCODES["="], ret_addr, None, temp_addr)
+            )
+            if not is_stmt_call:
+                self.operand_stack.append(temp_addr)
+                self.type_stack.append(finfo["ret"])
+        else:
+            if not is_stmt_call:
+                raise SemanticError(
+                    f"La función '{fname}' es void y no puede usarse en expresiones"
+                )
 
     # ============================================================
     # IF / ELSE

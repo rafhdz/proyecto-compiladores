@@ -278,5 +278,14 @@ class PatitoListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by PatitoParser#returnStmt.
+    def enterReturnStmt(self, ctx:PatitoParser.ReturnStmtContext):
+        pass
+
+    # Exit a parse tree produced by PatitoParser#returnStmt.
+    def exitReturnStmt(self, ctx:PatitoParser.ReturnStmtContext):
+        pass
+
+
 
 del PatitoParser

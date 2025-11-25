@@ -1,0 +1,25 @@
+program Areas;
+
+var
+    b, h : float;
+    areaTotal : float;
+
+float calcularArea(base: float, altura: float)
+var
+    resultado : float;
+{
+    resultado = base * altura;
+    return(resultado);
+};
+
+void imprimirResultado(valor: float)
+{
+    print(valor);
+};
+
+main
+{
+    areaTotal = calcularArea(b, h);
+    imprimirResultado(areaTotal);
+}
+end

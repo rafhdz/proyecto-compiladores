@@ -83,6 +83,7 @@ stmt
     | whileStmt
     | printStmt
     | funcCallStmt
+    | returnStmt  
     ;
 
 // x = expr;
@@ -168,6 +169,10 @@ atom
     | ID
     ;
 
+returnStmt
+    : RETURN LPAREN expr RPAREN SEMI
+    ;
+
 // ======================
 // 6. LÉXICO
 // ======================
@@ -185,6 +190,7 @@ PRINT   : 'print';
 INT     : 'int';
 FLOAT   : 'float';
 VOID    : 'void';
+RETURN : 'return';
 
 // Símbolos
 ASSIGN  : '=';

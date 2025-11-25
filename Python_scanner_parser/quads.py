@@ -1,7 +1,7 @@
 class Quadruple:
     def __init__(self, op, left, right, res):
-        self.op = op
-        self.left = left
+        self.op = op # entero: opcode
+        self.left = left # direcciones virtuales
         self.right = right
         self.res = res
 

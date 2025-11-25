@@ -9,5 +9,10 @@ OPCODES = {
     "=": 13,
     "GOTOF": 50,
     "GOTO": 51,
+    "ERA": 70,
+    "PARAM": 71,
+    "GOSUB": 72,
+    "RET": 73,
+    "ENDFUNC": 74,
     "PRINT": 60,
 }
