@@ -37,6 +37,8 @@ class PatitoSemanticListener(PatitoListener):
         self.quadruples = []
         self.temp_manager = TempManager(self.memory)
         self.goto_main_index = None
+        # Rastrea el valor (addr, tipo) asociado a cada ExprContext
+        self.expr_value = {}
 
     # ============================================================
     # DEBUG / SIMBOLOGÍA
@@ -130,6 +132,9 @@ class PatitoSemanticListener(PatitoListener):
         if finfo["start"] is None:
             self.funcdir.set_start(fname, len(self.quadruples))
 
+        if finfo["ret"] != "void" and not finfo["has_return"]:
+            raise SemanticError(f"La función '{fname}' debe retornar un valor")
+
         self.quadruples.append(Quadruple(OPCODES["ENDFUNC"], None, None, None))
         self.funcdir.set_global()
 
@@ -208,10 +213,37 @@ class PatitoSemanticListener(PatitoListener):
     # RELACIONALES
     # ============================================================
     def exitRelExpr(self, ctx):
-        r_op = self.operand_stack.pop()
-        r_ty = self.type_stack.pop()
-        l_op = self.operand_stack.pop()
-        l_ty = self.type_stack.pop()
+        left_ctx = ctx.expr(0)
+        right_ctx = ctx.expr(1)
+
+        l_val = self.expr_value.get(left_ctx)
+        r_val = self.expr_value.get(right_ctx)
+
+        def pop_stack(side):
+            if not self.operand_stack:
+                return None
+            return self.operand_stack.pop(), self.type_stack.pop()
+
+        r_pair = r_val or pop_stack("right")
+        l_pair = l_val or pop_stack("left")
+
+        if not r_pair or not l_pair:
+            stack_snapshot = list(self.operand_stack)
+            raise SemanticError(
+                f"Expresión relacional incompleta: '{ctx.getText()}', "
+                f"stack={stack_snapshot}, in_if={self.in_if_condition}, in_while={self.in_while_condition}"
+            )
+
+        r_op, r_ty = r_pair
+        l_op, l_ty = l_pair
+
+        # Limpia de la pila si aún están presentes (sin afectar otros valores previos)
+        if self.operand_stack and self.operand_stack[-1] == r_op:
+            self.operand_stack.pop()
+            self.type_stack.pop()
+        if self.operand_stack and self.operand_stack[-1] == l_op:
+            self.operand_stack.pop()
+            self.type_stack.pop()
 
         op = ctx.relop().getText()
         res_ty = self.cube.check_op(op, l_ty, r_ty)
@@ -223,6 +255,7 @@ class PatitoSemanticListener(PatitoListener):
 
         self.operand_stack.append(addr)
         self.type_stack.append(res_ty)
+        self.expr_value[ctx] = (addr, res_ty)
 
         # IF -----------------------------------------------------
         if self.in_if_condition:
@@ -277,6 +310,9 @@ class PatitoSemanticListener(PatitoListener):
     def exitPrintStmt(self, ctx):
         if ctx.printArgList():
             count = len(ctx.printArgList().expr())
+            if len(self.operand_stack) < count:
+                raise SemanticError("Argumentos de print no evaluados correctamente")
+
             addrs = []
             for _ in range(count):
                 addrs.append(self.operand_stack.pop())
@@ -365,7 +401,8 @@ class PatitoSemanticListener(PatitoListener):
         self.in_if_condition = True
 
     def exitIfStmt(self, ctx):
-        pass
+        # La lógica principal se maneja en exitRelExpr/exitToAdd + exitBlock
+        return
 
     def exitBlock(self, ctx):
         parent = ctx.parentCtx
@@ -415,3 +452,102 @@ class PatitoSemanticListener(PatitoListener):
 
         end = len(self.quadruples)
         self.quadruples[false_jump].res = end
+
+    # ============================================================
+    # UNARIO (+, -)
+    # ============================================================
+    def exitUnarySign(self, ctx):
+        sign = ctx.getChild(0).getText()
+        operand_addr = self.operand_stack.pop()
+        operand_type = self.type_stack.pop()
+
+        if sign == '+':
+            # No-op, se vuelve a poner el operando
+            self.operand_stack.append(operand_addr)
+            self.type_stack.append(operand_type)
+            return
+
+        # signo negativo: 0 - op
+        if operand_type not in ("int", "float"):
+            raise SemanticError(f"No se puede aplicar signo a tipo {operand_type}")
+
+        zero_val = 0.0 if operand_type == "float" else 0
+        zero_addr = self.get_or_add_constant(zero_val, operand_type)
+
+        _, temp_addr = self.temp_manager.new_temp(operand_type)
+        self.quadruples.append(
+            Quadruple(OPCODES["-"], zero_addr, operand_addr, temp_addr)
+        )
+
+        self.operand_stack.append(temp_addr)
+        self.type_stack.append(operand_type)
+
+    # ============================================================
+    # CONDICIONES SIN OPERADOR RELACIONAL (usa expr -> addExpr)
+    # ============================================================
+    def exitToAdd(self, ctx):
+        # Solo aplica cuando la expresión de condición no tuvo relop
+        # y estamos evaluando directamente el expr del if/while.
+        if not (self.in_if_condition or self.in_while_condition):
+            # Registrar valor del expr si está en la pila
+            if self.operand_stack:
+                self.expr_value[ctx] = (self.operand_stack[-1], self.type_stack[-1])
+            return
+
+        parent_expr = ctx.parentCtx if isinstance(ctx.parentCtx, PatitoParser.ExprContext) else None
+        stmt_ctx = parent_expr.parentCtx if parent_expr else None
+        is_if_while = isinstance(stmt_ctx, (PatitoParser.IfStmtContext, PatitoParser.WhileStmtContext))
+
+        if not is_if_while:
+            if self.operand_stack:
+                self.expr_value[ctx] = (self.operand_stack[-1], self.type_stack[-1])
+            return
+
+        # Validar que este expr sea el de la condición del if/while
+        if isinstance(stmt_ctx, PatitoParser.IfStmtContext):
+            if stmt_ctx.expr() != parent_expr:
+                if self.operand_stack:
+                    self.expr_value[ctx] = (self.operand_stack[-1], self.type_stack[-1])
+                return
+        else:  # WhileStmt
+            if stmt_ctx.expr() != parent_expr:
+                if self.operand_stack:
+                    self.expr_value[ctx] = (self.operand_stack[-1], self.type_stack[-1])
+                return
+
+        cond_addr = self.operand_stack.pop()
+        self.type_stack.pop()
+
+        self.quadruples.append(Quadruple(OPCODES["GOTOF"], cond_addr, None, None))
+        self.jump_stack.append(len(self.quadruples) - 1)
+
+        if isinstance(stmt_ctx, PatitoParser.IfStmtContext):
+            self.in_if_condition = False
+        else:
+            self.in_while_condition = False
+        # Registrar el resultado booleano del expr
+        self.expr_value[parent_expr] = (self.quadruples[-1].left, "int")
+
+    # ============================================================
+    # RETURN
+    # ============================================================
+    def exitReturnStmt(self, ctx):
+        if self.funcdir.current_function == "global":
+            raise SemanticError("Un return solo puede aparecer dentro de una función")
+
+        finfo = self.funcdir.lookup_function(self.funcdir.current_function)
+        if finfo["ret"] == "void":
+            raise SemanticError("Una función void no puede retornar un valor")
+
+        expr_addr = self.operand_stack.pop()
+        expr_type = self.type_stack.pop()
+
+        self.cube.check_assign(finfo["ret"], expr_type)
+
+        # Guardar en la dirección reservada para el valor de retorno
+        self.quadruples.append(
+            Quadruple(OPCODES["="], expr_addr, None, finfo["return_addr"])
+        )
+        # Salida de la función
+        self.quadruples.append(Quadruple(OPCODES["RET"], expr_addr, None, None))
+        self.funcdir.mark_return(self.funcdir.current_function)

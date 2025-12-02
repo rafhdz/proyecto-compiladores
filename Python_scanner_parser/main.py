@@ -57,7 +57,7 @@ def main():
         print(f"{i:03}  {q}")
 
     # Cuádruplos amigables con nombres y opcodes
-    print("\n=== CUADRUPLOS (para DEBUGING) ===")
+    print("\n=== CUADRUPLOS (para efectos del DEBUGING) ===")
     op_names = {v: k for k, v in OPCODES.items()}
     symbols = sem_listener.build_symbol_table()
 

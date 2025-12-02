@@ -78,6 +78,7 @@ class ExecutionMemory:
         }
         self.call_stack: List[ActivationRecord] = []
         self.current_activation: Optional[ActivationRecord] = None
+        self.pending_activation: Optional[ActivationRecord] = None
 
         if constants:
             self._load_constants(constants)
@@ -91,6 +92,18 @@ class ExecutionMemory:
         self.current_activation = ar
         return ar
 
+    def prepare_activation(self, tag: str = "call"):
+        self.pending_activation = ActivationRecord(tag)
+        return self.pending_activation
+
+    def push_prepared_activation(self):
+        if not self.pending_activation:
+            raise RuntimeError("No hay activacion preparada para hacer push")
+        self.call_stack.append(self.pending_activation)
+        self.current_activation = self.pending_activation
+        self.pending_activation = None
+        return self.current_activation
+
     def pop_activation(self):
         if not self.call_stack:
             raise RuntimeError("Pila de activaciones vacia")
@@ -102,20 +115,39 @@ class ExecutionMemory:
     # ------------------------------------------------------------
     def load(self, addr: int):
         win = self._window_for_address(addr, allow_constants=True)
+        if addr not in win._data:
+            if win.name.startswith("const_"):
+                raise RuntimeError(f"Direccion {addr} no inicializada en {win.name}")
+            default = self._default_for_segment(win.name)
+            win.store(addr, default)
         return win.load(addr)
 
     def store(self, addr: int, value):
         win = self._window_for_address(addr, allow_constants=False)
         win.store(addr, value)
 
+    def store_pending(self, addr: int, value):
+        if not self.pending_activation:
+            raise RuntimeError("No hay activacion preparada para PARAM")
+        win = self._window_for_address(
+            addr, allow_constants=False, activation_override=self.pending_activation
+        )
+        win.store(addr, value)
+
     # ------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------
-    def _window_for_address(self, addr: int, allow_constants: bool) -> MemoryWindow:
+    def _window_for_address(
+        self,
+        addr: int,
+        allow_constants: bool,
+        activation_override: Optional[ActivationRecord] = None,
+    ) -> MemoryWindow:
         search_order = []
 
-        if self.current_activation:
-            search_order.extend(self.current_activation.windows())
+        activation = activation_override or self.current_activation
+        if activation:
+            search_order.extend(activation.windows())
 
         search_order.extend(self.globals.values())
 
@@ -127,6 +159,17 @@ class ExecutionMemory:
                 return win
 
         raise RuntimeError(f"Direccion {addr} fuera del mapa de memoria")
+
+    def _default_for_segment(self, segment_name: str):
+        if segment_name.endswith("int"):
+            return 0
+        if segment_name.endswith("float"):
+            return 0.0
+        if segment_name.endswith("bool"):
+            return False
+        if segment_name.endswith("string"):
+            return ""
+        return None
 
     def _load_constants(self, constants: Dict[object, int]):
         """
