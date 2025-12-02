@@ -64,7 +64,7 @@ class ExecutionMemory:
     - Segmentos locales/temporales por activacion de funcion
     """
 
-    def __init__(self, constants: Optional[Dict[object, int]] = None):
+    def __init__(self, constants: Optional[Dict[int, object]] = None):
         self.layout = SEGMENT_LAYOUT
         self.globals = {
             name: MemoryWindow(name, start, size)
@@ -171,12 +171,12 @@ class ExecutionMemory:
             return ""
         return None
 
-    def _load_constants(self, constants: Dict[object, int]):
+    def _load_constants(self, constants: Dict[int, object]):
         """
-        El compilador entrega un diccionario valor -> direccion. Aqui se guardan
-        los valores en el segmento de constantes correspondiente.
+        Recibe un diccionario direccion -> valor y los guarda en el segmento
+        de constantes correspondiente.
         """
-        for value, addr in constants.items():
+        for addr, value in constants.items():
             win = self._window_for_address(addr, allow_constants=True)
             if not win.name.startswith("const_"):
                 raise RuntimeError(f"La direccion {addr} no pertenece al segmento de constantes")

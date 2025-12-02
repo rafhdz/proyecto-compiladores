@@ -20,7 +20,9 @@ class PatitoSemanticListener(PatitoListener):
         self.memory = VirtualMemory()
         self.funcdir.memory = self.memory
 
-        self.constants = {}  # valor hacia dirección
+        # Constantes: addr -> valor y lookup para evitar colisiones bool/int
+        self.constants = {}
+        self.constant_lookup = {}
 
         # === PILAS ===
         self.operand_stack = []
@@ -62,7 +64,7 @@ class PatitoSemanticListener(PatitoListener):
                 addr_to_name[vinfo.address] = f"{fname}.{name}"
 
         # Constantes (valor -> addr está en self.constants)
-        for value, addr in self.constants.items():
+        for addr, value in self.constants.items():
             addr_to_name[addr] = repr(value)
 
         # Temporales (guardados por TempManager)
@@ -74,11 +76,13 @@ class PatitoSemanticListener(PatitoListener):
     # CONSTANTES
     # ============================================================
     def get_or_add_constant(self, value, vtype):
-        if value in self.constants:
-            return self.constants[value]
+        key = (value, vtype)
+        if key in self.constant_lookup:
+            return self.constant_lookup[key]
 
         addr = self.memory.alloc_const(vtype)
-        self.constants[value] = addr
+        self.constant_lookup[key] = addr
+        self.constants[addr] = value
         return addr
 
     # ============================================================
@@ -160,6 +164,13 @@ class PatitoSemanticListener(PatitoListener):
             addr = self.get_or_add_constant(value, "float")
             self.operand_stack.append(addr)
             self.type_stack.append("float")
+            return
+
+        if ctx.TRUE() or ctx.FALSE():
+            value = True if ctx.TRUE() else False
+            addr = self.get_or_add_constant(value, "bool")
+            self.operand_stack.append(addr)
+            self.type_stack.append("bool")
             return
 
         if ctx.STRING():
@@ -494,11 +505,25 @@ class PatitoSemanticListener(PatitoListener):
                 self.expr_value[ctx] = (self.operand_stack[-1], self.type_stack[-1])
             return
 
-        parent_expr = ctx.parentCtx if isinstance(ctx.parentCtx, PatitoParser.ExprContext) else None
-        stmt_ctx = parent_expr.parentCtx if parent_expr else None
-        is_if_while = isinstance(stmt_ctx, (PatitoParser.IfStmtContext, PatitoParser.WhileStmtContext))
+        # Detectar el statement al que pertenece esta expr, aunque no haya nodo Expr padre.
+        stmt_ctx = None
+        parent_expr = None
+        if isinstance(ctx.parentCtx, (PatitoParser.IfStmtContext, PatitoParser.WhileStmtContext)):
+            stmt_ctx = ctx.parentCtx
+            parent_expr = ctx
+        elif isinstance(ctx.parentCtx, PatitoParser.ExprContext):
+            parent_expr = ctx.parentCtx
+            if isinstance(parent_expr.parentCtx, (PatitoParser.IfStmtContext, PatitoParser.WhileStmtContext)):
+                stmt_ctx = parent_expr.parentCtx
 
-        if not is_if_while:
+            # Si este addExpr es parte de una expr con operador relacional,
+            # no generamos salto aquí; la lógica se maneja en exitRelExpr.
+            if parent_expr.relop():
+                if self.operand_stack:
+                    self.expr_value[ctx] = (self.operand_stack[-1], self.type_stack[-1])
+                return
+
+        if stmt_ctx is None:
             if self.operand_stack:
                 self.expr_value[ctx] = (self.operand_stack[-1], self.type_stack[-1])
             return

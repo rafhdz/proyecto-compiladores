@@ -10,8 +10,8 @@ Se reservan bloques de 1000 direcciones contiguas por tipo/ámbito. Este esquema
 
 - 1000-1999 `glob_int`, 2000-2999 `glob_float`, 3000-3999 `glob_bool`
 - 4000-4999 `loc_int`, 5000-5999 `loc_float`, 6000-6999 `loc_bool`
-- 7000-7999 `const_int`, 8000-8999 `const_float`, 9000-9999 `const_string`
-- 10000-10999 `temp_int`, 11000-11999 `temp_float`, 12000-12999 `temp_bool`
+- 7000-7999 `const_int`, 8000-8999 `const_float`, 9000-9999 `const_bool`, 10000-10999 `const_string`
+- 11000-11999 `temp_int`, 12000-12999 `temp_float`, 13000-13999 `temp_bool`
 
 En tiempo de ejecución:
 - Los segmentos globales viven durante toda la corrida.

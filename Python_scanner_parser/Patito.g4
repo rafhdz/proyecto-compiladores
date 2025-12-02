@@ -67,6 +67,7 @@ param
 type
     : INT
     | FLOAT
+    | BOOL
     | VOID
     ;
 
@@ -143,6 +144,7 @@ relop
     : GT
     | LT
     | NE
+    | EQ
     ;
 
 addExpr
@@ -151,8 +153,8 @@ addExpr
     ;
 
 multExpr
-    : multExpr (TIMES | DIV) unaryExpr  #multOp
-    | unaryExpr                         #toUnary
+    : multExpr (TIMES | DIV | MOD) unaryExpr  #multOp
+    | unaryExpr                               #toUnary
     ;
 
 unaryExpr
@@ -165,6 +167,8 @@ atom
     | funcCall
     | CTE_INT
     | CTE_FLOAT
+    | TRUE
+    | FALSE
     | STRING
     | ID
     ;
@@ -189,8 +193,11 @@ DO      : 'do';
 PRINT   : 'print';
 INT     : 'int';
 FLOAT   : 'float';
+BOOL    : 'bool';
 VOID    : 'void';
 RETURN : 'return';
+TRUE    : 'true';
+FALSE   : 'false';
 
 // Símbolos
 ASSIGN  : '=';
@@ -198,9 +205,11 @@ PLUS    : '+';
 MINUS   : '-';
 TIMES   : '*';
 DIV     : '/';
+MOD     : '%';
 GT      : '>';
 LT      : '<';
 NE      : '!=';
+EQ      : '==';
 SEMI    : ';';
 COMMA   : ',';
 COLON   : ':';

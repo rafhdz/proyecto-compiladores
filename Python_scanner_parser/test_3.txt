@@ -1,0 +1,54 @@
+program Evaluacion;
+
+var
+    numero : int;
+    i : int;
+
+bool esPar(x : int)
+var
+    r : int;
+{
+    r = x % 2;
+    if (r == 0) {
+        return(true);
+    } else {
+        return(false);
+    };
+};
+
+int sumaHasta(n : int)
+var
+    total : int;
+{
+    total = 0;
+
+    while (n > 0) do {
+        total = total + n;
+        n = n - 1;
+    };
+
+    return(total);
+};
+
+main
+{
+    numero = 7;
+
+    // Estructura condicional
+    if (esPar(numero)) {
+        print(numero, "es par");
+    } else {
+        print(numero, "es impar");
+    };
+
+    // Ciclo para imprimir cuenta regresiva
+    i = numero;
+    while (i > 0) do {
+        print(i);
+        i = i - 1;
+    };
+
+    // Sumar desde 1 hasta numero
+    print("Suma desde 1 hasta", numero, "=", sumaHasta(numero));
+}
+end

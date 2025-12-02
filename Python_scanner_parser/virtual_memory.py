@@ -16,12 +16,13 @@ SEGMENT_LAYOUT = {
     # Constantes
     "const_int": (7000, SEGMENT_SIZE),
     "const_float": (8000, SEGMENT_SIZE),
-    "const_string": (9000, SEGMENT_SIZE),
+    "const_bool": (9000, SEGMENT_SIZE),
+    "const_string": (10000, SEGMENT_SIZE),
 
     # Temporales (por activación)
-    "temp_int": (10000, SEGMENT_SIZE),
-    "temp_float": (11000, SEGMENT_SIZE),
-    "temp_bool": (12000, SEGMENT_SIZE),
+    "temp_int": (11000, SEGMENT_SIZE),
+    "temp_float": (12000, SEGMENT_SIZE),
+    "temp_bool": (13000, SEGMENT_SIZE),
 }
 
 

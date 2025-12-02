@@ -75,10 +75,19 @@ class SemanticCube:
             '-': {'int': int_ops, 'float': float_ops},
             '*': {'int': int_ops, 'float': float_ops},
             '/': {'int': float_ops, 'float': float_ops},
-            '>': {'int': {'int': 'int', 'float': 'int'}, 'float': {'int': 'int', 'float': 'int'}},
-            '<': {'int': {'int': 'int', 'float': 'int'}, 'float': {'int': 'int', 'float': 'int'}},
-            '!=': {'int': {'int': 'int', 'float': 'int'}, 'float': {'int': 'int', 'float': 'int'}},
-            '==': {'int': {'int': 'int', 'float': 'int'}, 'float': {'int': 'int', 'float': 'int'}}
+            '%': {'int': {'int': 'int'}},
+            '>': {'int': {'int': 'bool', 'float': 'bool'}, 'float': {'int': 'bool', 'float': 'bool'}},
+            '<': {'int': {'int': 'bool', 'float': 'bool'}, 'float': {'int': 'bool', 'float': 'bool'}},
+            '!=': {
+                'int': {'int': 'bool', 'float': 'bool'},
+                'float': {'int': 'bool', 'float': 'bool'},
+                'bool': {'bool': 'bool'},
+            },
+            '==': {
+                'int': {'int': 'bool', 'float': 'bool'},
+                'float': {'int': 'bool', 'float': 'bool'},
+                'bool': {'bool': 'bool'},
+            },
         }
 
     def check_op(self, op, t1, t2):
@@ -92,6 +101,8 @@ class SemanticCube:
 
     def check_assign(self, target_type, expr_type):
         if target_type == 'float' and expr_type == 'int':
+            return
+        if target_type == 'bool' and expr_type == 'bool':
             return
         if target_type != expr_type:
             raise SemanticError(f"Asignación incompatible: {target_type} = {expr_type}")

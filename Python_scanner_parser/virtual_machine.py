@@ -13,7 +13,7 @@ class VirtualMachine:
     Dentro de esta entrega soporta expresiones, asignaciones, saltos y print.
     """
 
-    def __init__(self, quadruples: List, constants: Optional[Dict[object, int]] = None):
+    def __init__(self, quadruples: List, constants: Optional[Dict[int, object]] = None):
         self.quadruples = quadruples
         self.ip = 0
         self.memory = ExecutionMemory(constants or {})
@@ -25,9 +25,11 @@ class VirtualMachine:
             OPCODES["-"]: lambda a, b: a - b,
             OPCODES["*"]: lambda a, b: a * b,
             OPCODES["/"]: lambda a, b: a / b,
+            OPCODES["%"]: lambda a, b: a % b,
             OPCODES[">"]: lambda a, b: a > b,
             OPCODES["<"]: lambda a, b: a < b,
             OPCODES["!="]: lambda a, b: a != b,
+            OPCODES["=="]: lambda a, b: a == b,
         }
 
     def run(self):
