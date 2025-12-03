@@ -1,4 +1,5 @@
 class VarInfo:
+    # Contenedor simple para metadatos de una variable
     def __init__(self, name, var_type, address):
         self.name = name
         self.var_type = var_type

@@ -24,7 +24,7 @@ void imprimirValor(valor : int)
 
 main
 {
-    n = 9;
+    n = 12;
     resultado = fib(n);
     imprimirValor(resultado);
 }

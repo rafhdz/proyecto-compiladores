@@ -32,7 +32,7 @@ var
 
 main
 {
-    numero = 7;
+    numero = 56;
 
     // Estructura condicional
     if (esPar(numero)) {

@@ -83,6 +83,7 @@ class VirtualMachine:
         raise NotImplementedError(f"Opcode no soportado: {OPCODE_NAMES.get(op, op)}")
 
     def _binary_op(self, quad):
+        # Evalúa operaciones aritméticas/relacionales binarias
         left = self.memory.load(quad.left)
         right = self.memory.load(quad.right)
         result = self.binary_ops[quad.op](left, right)
@@ -95,11 +96,13 @@ class VirtualMachine:
         return None
 
     def _era(self, quad):
+        # Prepara un nuevo marco para la llamada
         tag = quad.res if quad.res is not None else "call"
         self.memory.prepare_activation(str(tag))
         return None
 
     def _param(self, quad):
+        # Carga el argumento a la activación pendiente
         value = self.memory.load(quad.left)
         self.memory.store_pending(quad.res, value)
         return None

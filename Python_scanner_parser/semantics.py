@@ -1,4 +1,5 @@
 class SemanticError(Exception):
+    # Errores semánticos detectados durante el análisis
     pass
 
 
@@ -56,6 +57,7 @@ class VarTableHelper:
         func.var_table[name] = VarInfo(var_type)
 
     def lookup(self, name):
+        # Resuelve primero en el alcance actual y luego en global
         f = self.funcdir.get_current_funcinfo()
         if name in f.var_table:
             return f.var_table[name]
@@ -65,7 +67,7 @@ class VarTableHelper:
         print(f"[Error semántico] Variable '{name}' no declarada.")
         return VarInfo("ERROR")
 
-
+# Se asignan los tipos de datos, en base a la combinación 
 class SemanticCube:
     def __init__(self):
         int_ops = {'int': 'int', 'float': 'float'}
@@ -91,6 +93,7 @@ class SemanticCube:
         }
 
     def check_op(self, op, t1, t2):
+        # Determina el tipo resultante de una operación binaria
         if t1 == 'ERROR' or t2 == 'ERROR':
             return 'ERROR'
         try:
@@ -100,6 +103,7 @@ class SemanticCube:
             return 'ERROR'
 
     def check_assign(self, target_type, expr_type):
+        # Valida compatibilidad de tipos en asignaciones
         if target_type == 'float' and expr_type == 'int':
             return
         if target_type == 'bool' and expr_type == 'bool':

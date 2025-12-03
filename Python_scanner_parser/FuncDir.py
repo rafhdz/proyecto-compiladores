@@ -16,9 +16,11 @@ class FuncDir:
         self.memory = None  # es asignado por el listener
 
     def current_scope(self):
+        # Regresa el prefijo esperado por la tabla de memoria virtual
         return "glob" if self.current_function == "global" else "loc"
 
     def add_function(self, name, ret_type):
+        # Declara una nueva función y reserva espacio para su retorno si no es void
         if name in self.functions:
             raise SemanticError(f"Función '{name}' ya declarada")
         if name in self.functions["global"]["vars"]:
@@ -44,6 +46,7 @@ class FuncDir:
         self.current_function = "global"
 
     def set_start(self, name, start):
+        # Marca el índice de cuadruplo donde inicia la función
         self.functions[name]["start"] = start
 
     def mark_return(self, name):
@@ -55,6 +58,7 @@ class FuncDir:
         return self.functions[name]
 
     def add_variable(self, name, var_type, address):
+        # Agrega variable al ámbito actual con dirección ya reservada
         if name in self.functions[self.current_function]["vars"]:
             raise SemanticError(f"Variable '{name}' redeclarada en '{self.current_function}'")
         self.functions[self.current_function]["vars"][name] = VarInfo(
@@ -69,6 +73,7 @@ class FuncDir:
         self.add_variable(name, var_type, addr)
 
     def lookup_variable(self, name):
+        # Busca primero en el scope actual y luego en globales
         if name in self.functions[self.current_function]["vars"]:
             return self.functions[self.current_function]["vars"][name]
         if name in self.functions["global"]["vars"]:

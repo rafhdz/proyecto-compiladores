@@ -76,6 +76,7 @@ class PatitoSemanticListener(PatitoListener):
     # CONSTANTES
     # ============================================================
     def get_or_add_constant(self, value, vtype):
+        # Evita duplicar direcciones para la misma constante/tipo
         key = (value, vtype)
         if key in self.constant_lookup:
             return self.constant_lookup[key]
@@ -146,6 +147,7 @@ class PatitoSemanticListener(PatitoListener):
     # ÁTOMOS
     # ============================================================
     def exitAtom(self, ctx):
+        # Cada átomo empuja su dirección y tipo a las pilas
         if ctx.ID():
             vinfo = self.vartab.lookup(ctx.ID().getText())
             self.operand_stack.append(vinfo.address)

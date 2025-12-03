@@ -87,12 +87,14 @@ class ExecutionMemory:
     # Manejo de activaciones
     # ------------------------------------------------------------
     def push_activation(self, tag: str = "call"):
+        # Crea y activa un nuevo marco de ejecución (función)
         ar = ActivationRecord(tag)
         self.call_stack.append(ar)
         self.current_activation = ar
         return ar
 
     def prepare_activation(self, tag: str = "call"):
+        # Reserva un marco antes de evaluarse los PARAM
         self.pending_activation = ActivationRecord(tag)
         return self.pending_activation
 
@@ -123,6 +125,7 @@ class ExecutionMemory:
         return win.load(addr)
 
     def store(self, addr: int, value):
+        # Almacena solo en segmentos no constantes
         win = self._window_for_address(addr, allow_constants=False)
         win.store(addr, value)
 
@@ -147,6 +150,7 @@ class ExecutionMemory:
 
         activation = activation_override or self.current_activation
         if activation:
+            # Primero se buscan temporales y locales del marco activo
             search_order.extend(activation.windows())
 
         search_order.extend(self.globals.values())

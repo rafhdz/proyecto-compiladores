@@ -48,6 +48,7 @@ class VirtualMemory:
             setattr(self, name, MemorySegment(name, start, size))
 
     def alloc_var(self, scope, vtype):
+        # scope es glob/loc según el directorio de funciones
         return getattr(self, f"{scope}_{vtype}").alloc()
 
     def alloc_const(self, vtype):

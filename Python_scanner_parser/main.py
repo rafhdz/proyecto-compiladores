@@ -27,14 +27,14 @@ def main():
     token_stream = CommonTokenStream(lexer)
     parser = PatitoParser(token_stream)
 
-    # sintaxis
+    # sintaxis: registrar errores personalizados
     syn_err = PatitoErrorListener()
     parser.removeErrorListeners()
     parser.addErrorListener(syn_err)
 
     tree = parser.program()
 
-    # mostrar errores de sintaxis
+    # mostrar errores de sintaxis antes de continuar
     if syn_err.errors:
         print("Errores de sintaxis:")
         for e in syn_err.errors:
