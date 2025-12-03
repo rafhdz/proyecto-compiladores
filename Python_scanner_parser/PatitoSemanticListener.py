@@ -8,47 +8,108 @@ from TempManager import TempManager
 from quads import Quadruple
 from opcodes import OPCODES
 
+
 class PatitoSemanticListener(PatitoListener):
+    """
+    Listener semántico del lenguaje Patito.
+
+    ANTLR recorre el Parse Tree en preorden e invoca:
+        enterX(context) -> al llegar a un nodo
+        exitX(context)  -> al terminar el nodo
+
+    Aquí hacemos:
+        - Verificación semántica
+        - Asignación de memoria virtual
+        - Generación de cuádruplos
+
+    Esto es fase FRONTEND del compilador:
+        1. Scanner: convierte texto en tokens
+        2. Parser: tokens → árbol sintáctico
+        3. Listener: árbol sintáctico → semántica + código intermedio
+    """
 
     def __init__(self):
-        # === ESTRUCTURAS SEMÁNTICAS ===
+        # ============================================================
+        # TABLAS PRINCIPALES DE COMPILACIÓN
+        # ============================================================
+
+        # Directorio de funciones: cada función tiene:
+        # params, tabla local, tipo retorno, dir retorno, dir inicio
         self.funcdir = FuncDir()
+
+        # Variable table helper: decide si registrar/buscar en global o función actual
         self.vartab = VarTableHelper(self.funcdir)
+
+        # Cubo semántico: define tipos + operadores válidos y resultado esperado
         self.cube = SemanticCube()
 
-        # === MEMORIA VIRTUAL ===
+        # ============================================================
+        # MEMORIA VIRTUAL
+        # ============================================================
+
+        # Maneja direcciones reales:
+        #    Global, Local, Temporal, Constantes
         self.memory = VirtualMemory()
+        # FuncDir debe poder pedir memoria (para vars, ret_addr, params)
         self.funcdir.memory = self.memory
 
-        # Constantes: addr -> valor y lookup para evitar colisiones bool/int
+        # Constantes únicas:
+        #   constant_lookup → (valor,tipo) → addr
+        #   constants → addr → valor
         self.constants = {}
         self.constant_lookup = {}
 
-        # === PILAS ===
+        # ============================================================
+        # PILAS SEMÁNTICAS
+        # ============================================================
+        # Aquí se simula el STACK MACHINE del compilador
+
+        # Direcciones de operandos (nunca valores reales)
         self.operand_stack = []
+        # Tipos ("int","float","bool"...)
         self.type_stack = []
+        # Operadores: en esta versión rara vez se usa
         self.operator_stack = []
+        # Saltos pendientes de rellenar (backpatch)
         self.jump_stack = []
 
-        # === CONTROL ===
+        # ============================================================
+        # CONTROL DE CONTEXTO
+        # ============================================================
+        # Estas flags son necesarias porque la gramática permite:
+        #   if(expr)
+        #   if(expr relop expr)
+        # Sin estas flags, el listener no sabe cuándo expr pertenece a un IF/WHILE
         self.in_if_condition = False
         self.in_while_condition = False
+
+        # Guarda el índice del inicio del ciclo while
+        # para generar el salto hacia atrás
         self.while_start_stack = []
 
-        # === CUADRUPLOS ===
+        # ============================================================
+        # CUADRUPLOS
+        # ============================================================
         self.quadruples = []
+
+        # Gestor de temporales: pide direcciones
         self.temp_manager = TempManager(self.memory)
+
+        # Posición del GOTO que saltará al MAIN
         self.goto_main_index = None
-        # Rastrea el valor (addr, tipo) asociado a cada ExprContext
+
+        # Cache de expr → (addr,tipo)
+        # Esto soluciona bugs de ANTLR donde exitRelExpr consumía pilas erróneamente
         self.expr_value = {}
 
     # ============================================================
-    # DEBUG / SIMBOLOGÍA
+    # UTILIDAD PARA DEBUG → mapping dirección → nombre humano
     # ============================================================
     def build_symbol_table(self):
         """
-        Crea un mapa direccion -> nombre amigable para imprimir cuádruplos
-        con variables/constantes/temporales.
+        Construye un mapa addr → string amigable.
+        Solo para depuración/pretty print.
+        No altera generación de código.
         """
         addr_to_name = {}
 
@@ -56,18 +117,18 @@ class PatitoSemanticListener(PatitoListener):
         for name, vinfo in self.funcdir.functions["global"]["vars"].items():
             addr_to_name[vinfo.address] = f"global.{name}"
 
-        # Variables locales de cada función
+        # Variables locales
         for fname, finfo in self.funcdir.functions.items():
             if fname == "global":
                 continue
             for name, vinfo in finfo["vars"].items():
                 addr_to_name[vinfo.address] = f"{fname}.{name}"
 
-        # Constantes (valor -> addr está en self.constants)
+        # Constantes
         for addr, value in self.constants.items():
             addr_to_name[addr] = repr(value)
 
-        # Temporales (guardados por TempManager)
+        # Temporales asignados por TempManager
         addr_to_name.update(self.temp_manager.addr_to_name)
 
         return addr_to_name
@@ -76,54 +137,85 @@ class PatitoSemanticListener(PatitoListener):
     # CONSTANTES
     # ============================================================
     def get_or_add_constant(self, value, vtype):
-        # Evita duplicar direcciones para la misma constante/tipo
+        """
+        Garantiza una constante única.
+        Sin duplicar direcciones
+        """
         key = (value, vtype)
+
+        # Ya existe → devuelve misma dirección
         if key in self.constant_lookup:
             return self.constant_lookup[key]
 
+        # Reserva espacio en segmento CONST
         addr = self.memory.alloc_const(vtype)
+
         self.constant_lookup[key] = addr
         self.constants[addr] = value
         return addr
 
     # ============================================================
-    # PROGRAMA Y BLOQUES
+    # PROGRAM
     # ============================================================
     def enterProgram(self, ctx):
-        # Salto al inicio de main para omitir el código de funciones
+        """
+        Estrategia compilador:
+        - ANTES del main se generan funciones
+        - PERO la ejecución real debe empezar en main
+        Solución:
+            GOTO ?
+            cuando lleguemos al bloque de MAIN se rellena
+        """
         self.quadruples.append(Quadruple(OPCODES["GOTO"], None, None, None))
         self.goto_main_index = len(self.quadruples) - 1
 
+    # ============================================================
+    # BLOQUES
+    # ============================================================
     def enterBlock(self, ctx):
         parent = ctx.parentCtx
 
-        # Inicio del bloque main
+        # Bloque MAIN (padre es ProgramContext)
         if isinstance(parent, PatitoParser.ProgramContext):
+            # backpatch GOTO al inicio del main
             if self.goto_main_index is not None:
                 self.quadruples[self.goto_main_index].res = len(self.quadruples)
 
-        # Inicio de un bloque de función
+        # Bloque de función
         elif isinstance(parent, PatitoParser.FuncDeclContext):
             fname = parent.ID().getText()
+            # Cuádruplo donde inicia el código ejecutable
             self.funcdir.set_start(fname, len(self.quadruples))
-            # reiniciamos el contador de temporales para claridad
+            # reset temporales → buena práctica / debug
             self.temp_manager.counter = 0
 
     # ============================================================
     # DECLARACIONES
     # ============================================================
     def enterVarDecl(self, ctx):
+        """
+        varDecl: idList : type;
+        Cada ID genera una dirección nueva en el segmento:
+        - Global si estamos en global
+        - Local si estamos dentro de función
+        """
         vtype = ctx.type_().getText()
         ids = [x.getText() for x in ctx.idList().ID()]
         for name in ids:
             self.vartab.add_var(name, vtype)
 
     def enterFuncDecl(self, ctx):
+        """
+        type ID(params)
+        Registrar función en directorio:
+        - tipo retorno
+        - parámetros (pero aún no set_start)
+        """
         ret_type = ctx.type_().getText()
         fname = ctx.ID().getText()
         self.funcdir.add_function(fname, ret_type)
 
-        # Manejo de parámetros (esto sí se queda aquí)
+        # Agregar parámetros a tabla local
         if ctx.paramList():
             for p in ctx.paramList().param():
                 self.funcdir.add_param(
@@ -132,11 +224,20 @@ class PatitoSemanticListener(PatitoListener):
                 )
 
     def exitFuncDecl(self, ctx):
+        """
+        Al salir:
+            - Verificar RETURN obligatorio
+            - INYECTAR ENDFUNC
+            - Regresar a contexto global
+        """
         fname = ctx.ID().getText()
         finfo = self.funcdir.lookup_function(fname)
+
+        # Si nunca se entró al block
         if finfo["start"] is None:
             self.funcdir.set_start(fname, len(self.quadruples))
 
+        # Función no void → debe retornar
         if finfo["ret"] != "void" and not finfo["has_return"]:
             raise SemanticError(f"La función '{fname}' debe retornar un valor")
 
@@ -144,10 +245,15 @@ class PatitoSemanticListener(PatitoListener):
         self.funcdir.set_global()
 
     # ============================================================
-    # ÁTOMOS
+    # ATOMS (hojas de expresiones)
     # ============================================================
     def exitAtom(self, ctx):
-        # Cada átomo empuja su dirección y tipo a las pilas
+        """
+        ID → dirección de var
+        CTE → dirección const
+        STRING → dirección const
+        TRUE/FALSE → dirección const
+        """
         if ctx.ID():
             vinfo = self.vartab.lookup(ctx.ID().getText())
             self.operand_stack.append(vinfo.address)
@@ -183,9 +289,13 @@ class PatitoSemanticListener(PatitoListener):
             return
 
     # ============================================================
-    # OPERADORES BINARIOS: *, / 
+    # OPERADORES BINARIOS * /
     # ============================================================
     def exitMultOp(self, ctx):
+        """
+        multExpr (*) unaryExpr
+        ANTLR ya dejó ambos operandos evaluados en la pila
+        """
         r_op = self.operand_stack.pop()
         r_ty = self.type_stack.pop()
         l_op = self.operand_stack.pop()
@@ -203,7 +313,7 @@ class PatitoSemanticListener(PatitoListener):
         self.type_stack.append(res_ty)
 
     # ============================================================
-    # OPERADORES BINARIOS: +, -
+    # OPERADORES BINARIOS + -
     # ============================================================
     def exitAddOp(self, ctx):
         r_op = self.operand_stack.pop()
@@ -215,23 +325,29 @@ class PatitoSemanticListener(PatitoListener):
         res_ty = self.cube.check_op(op, l_ty, r_ty)
 
         _, addr = self.temp_manager.new_temp(res_ty)
-
         opcode = OPCODES[op]
+
         self.quadruples.append(Quadruple(opcode, l_op, r_op, addr))
 
         self.operand_stack.append(addr)
         self.type_stack.append(res_ty)
 
     # ============================================================
-    # RELACIONALES
+    # EXPRESIONES RELACIONALES
     # ============================================================
     def exitRelExpr(self, ctx):
+        """
+        expr relop expr
+        Produce temporal booleano y si estamos en IF/WHILE → GOTOF
+        """
         left_ctx = ctx.expr(0)
         right_ctx = ctx.expr(1)
 
+        # expr_value almacena pares cuando exitToAdd los guarda
         l_val = self.expr_value.get(left_ctx)
         r_val = self.expr_value.get(right_ctx)
 
+        # fallback: use pop del stack
         def pop_stack(side):
             if not self.operand_stack:
                 return None
@@ -241,16 +357,14 @@ class PatitoSemanticListener(PatitoListener):
         l_pair = l_val or pop_stack("left")
 
         if not r_pair or not l_pair:
-            stack_snapshot = list(self.operand_stack)
             raise SemanticError(
                 f"Expresión relacional incompleta: '{ctx.getText()}', "
-                f"stack={stack_snapshot}, in_if={self.in_if_condition}, in_while={self.in_while_condition}"
             )
 
         r_op, r_ty = r_pair
         l_op, l_ty = l_pair
 
-        # Limpia de la pila si aún están presentes (sin afectar otros valores previos)
+        # por si quedaron duplicados arriba en la pila
         if self.operand_stack and self.operand_stack[-1] == r_op:
             self.operand_stack.pop()
             self.type_stack.pop()
@@ -263,14 +377,13 @@ class PatitoSemanticListener(PatitoListener):
 
         _, addr = self.temp_manager.new_temp(res_ty)
         opcode = OPCODES[op]
-
         self.quadruples.append(Quadruple(opcode, l_op, r_op, addr))
 
         self.operand_stack.append(addr)
         self.type_stack.append(res_ty)
         self.expr_value[ctx] = (addr, res_ty)
 
-        # IF -----------------------------------------------------
+        # IF → GOTOF
         if self.in_if_condition:
             cond = self.operand_stack.pop()
             self.type_stack.pop()
@@ -280,7 +393,7 @@ class PatitoSemanticListener(PatitoListener):
             self.jump_stack.append(len(self.quadruples) - 1)
             self.in_if_condition = False
 
-        # WHILE --------------------------------------------------
+        # WHILE → GOTOF
         elif self.in_while_condition:
             cond = self.operand_stack.pop()
             self.type_stack.pop()
@@ -294,6 +407,10 @@ class PatitoSemanticListener(PatitoListener):
     # ASIGNACIÓN
     # ============================================================
     def exitAssignStmt(self, ctx):
+        """
+        ID = expr;
+        expr dejó valor en operand_stack
+        """
         name = ctx.ID().getText()
         vinfo = self.vartab.lookup(name)
 
@@ -306,7 +423,7 @@ class PatitoSemanticListener(PatitoListener):
             Quadruple(OPCODES["="], expr_addr, None, vinfo.address)
         )
 
-        # Si asignamos al nombre de la función actual, lo tratamos como retorno
+        # Trick: asignar al nombre de la función → return implícito
         if (
             self.funcdir.current_function != "global"
             and name == self.funcdir.current_function
@@ -321,6 +438,11 @@ class PatitoSemanticListener(PatitoListener):
     # PRINT
     # ============================================================
     def exitPrintStmt(self, ctx):
+        """
+        print(expr, expr,...)
+        Se evalúan todas las expr antes, así que
+        operand_stack ya contiene direcciones
+        """
         if ctx.printArgList():
             count = len(ctx.printArgList().expr())
             if len(self.operand_stack) < count:
@@ -330,7 +452,8 @@ class PatitoSemanticListener(PatitoListener):
             for _ in range(count):
                 addrs.append(self.operand_stack.pop())
                 self.type_stack.pop()
-            # Se agregan en orden de aparición (la pila invierte el orden)
+
+            # pila invierte orden → revertir
             for addr in reversed(addrs):
                 self.quadruples.append(
                     Quadruple(OPCODES["PRINT"], addr, None, None)
@@ -341,16 +464,23 @@ class PatitoSemanticListener(PatitoListener):
             )
 
     # ============================================================
-    # LLAMADAS A FUNCIÓN
+    # LLAMADA A FUNCIÓN COMO EXPRESIÓN O STATEMENT
     # ============================================================
     def exitFuncCall(self, ctx):
+        """
+        Genera:
+          ERA fname
+          PARAM (...)
+          GOSUB fname, start
+          = return_addr, temp
+        """
         fname = ctx.ID().getText()
         finfo = self.funcdir.lookup_function(fname)
 
-        # ERA
+        # Crear AR de llamada
         self.quadruples.append(Quadruple(OPCODES["ERA"], None, None, fname))
 
-        # Parámetros
+        # Extraer args
         arg_exprs = ctx.argList().expr() if ctx.argList() else []
         arg_count = len(arg_exprs)
         expected_count = len(finfo["params"])
@@ -358,7 +488,7 @@ class PatitoSemanticListener(PatitoListener):
         if arg_count != expected_count:
             raise SemanticError(
                 f"Número de argumentos inválido para '{fname}': "
-                f"se esperaban {expected_count}, se recibieron {arg_count}"
+                f"esperado {expected_count}, recibido {arg_count}"
             )
 
         if arg_count:
@@ -367,6 +497,7 @@ class PatitoSemanticListener(PatitoListener):
         else:
             arg_addrs, arg_types = [], []
 
+        # PARAM
         for idx, (addr, ty) in enumerate(zip(arg_addrs, arg_types)):
             expected = finfo["params"][idx]["type"]
             self.cube.check_assign(expected, ty)
@@ -375,12 +506,12 @@ class PatitoSemanticListener(PatitoListener):
                 Quadruple(OPCODES["PARAM"], addr, None, target_addr)
             )
 
-        # limpiar de las pilas los argumentos
+        # limpiar args de pilas
         for _ in range(arg_count):
             self.operand_stack.pop()
             self.type_stack.pop()
 
-        # GOSUB
+        # Llamada efectiva
         if finfo["start"] is None:
             raise SemanticError(f"Función '{fname}' sin cuerpo definido")
 
@@ -388,7 +519,7 @@ class PatitoSemanticListener(PatitoListener):
             Quadruple(OPCODES["GOSUB"], fname, None, finfo["start"])
         )
 
-        # Valor de retorno
+        # Manejo de return
         parent = ctx.parentCtx
         is_stmt_call = isinstance(parent, PatitoParser.FuncCallStmtContext)
 
@@ -398,28 +529,42 @@ class PatitoSemanticListener(PatitoListener):
             self.quadruples.append(
                 Quadruple(OPCODES["="], ret_addr, None, temp_addr)
             )
+            # si es parte de expresión
             if not is_stmt_call:
                 self.operand_stack.append(temp_addr)
                 self.type_stack.append(finfo["ret"])
         else:
+            # función void NO puede estar en expr
             if not is_stmt_call:
                 raise SemanticError(
                     f"La función '{fname}' es void y no puede usarse en expresiones"
                 )
 
     # ============================================================
-    # IF / ELSE
+    # IF
     # ============================================================
     def enterIfStmt(self, ctx):
+        """
+        Siguiente expr será condición
+        """
         self.in_if_condition = True
 
     def exitIfStmt(self, ctx):
-        # La lógica principal se maneja en exitRelExpr/exitToAdd + exitBlock
+        """
+        Lógica principal en exitBlock
+        """
         return
 
     def exitBlock(self, ctx):
+        """
+        Este método maneja backpatch de:
+         - falso → inicio ELSE
+         - GOTO → salida IF
+         - salida ELSE
+        """
         parent = ctx.parentCtx
 
+        # Bloques del IF
         if isinstance(parent, PatitoParser.IfStmtContext):
             blocks = parent.block()
 
@@ -427,16 +572,17 @@ class PatitoSemanticListener(PatitoListener):
             if ctx == blocks[0]:
                 if parent.ELSE():
                     false_jump = self.jump_stack.pop()
-
+                    # Saltar ELSE
                     self.quadruples.append(
                         Quadruple(OPCODES["GOTO"], None, None, None)
                     )
                     end_jump = len(self.quadruples) - 1
                     self.jump_stack.append(end_jump)
 
+                    # GOTOF → inicio ELSE
                     self.quadruples[false_jump].res = len(self.quadruples)
-
                 else:
+                    # IF sin else
                     if self.jump_stack:
                         false_jump = self.jump_stack.pop()
                         self.quadruples[false_jump].res = len(self.quadruples)
@@ -451,12 +597,18 @@ class PatitoSemanticListener(PatitoListener):
     # WHILE
     # ============================================================
     def enterWhileStmt(self, ctx):
+        """
+        Registrar índice del inicio de la condición
+        """
         self.while_start_stack.append(len(self.quadruples))
         self.in_while_condition = True
 
     def exitWhileStmt(self, ctx):
+        """
+        1. GOTO → inicio condición
+        2. Backpatch GOTOF → salida
+        """
         start = self.while_start_stack.pop()
-
         false_jump = self.jump_stack.pop()
 
         self.quadruples.append(
@@ -467,20 +619,22 @@ class PatitoSemanticListener(PatitoListener):
         self.quadruples[false_jump].res = end
 
     # ============================================================
-    # UNARIO (+, -)
+    # UNARIOS
     # ============================================================
     def exitUnarySign(self, ctx):
+        """
+        +x → sin efecto
+        -x → generar 0 - x
+        """
         sign = ctx.getChild(0).getText()
         operand_addr = self.operand_stack.pop()
         operand_type = self.type_stack.pop()
 
         if sign == '+':
-            # No-op, se vuelve a poner el operando
             self.operand_stack.append(operand_addr)
             self.type_stack.append(operand_type)
             return
 
-        # signo negativo: 0 - op
         if operand_type not in ("int", "float"):
             raise SemanticError(f"No se puede aplicar signo a tipo {operand_type}")
 
@@ -496,18 +650,19 @@ class PatitoSemanticListener(PatitoListener):
         self.type_stack.append(operand_type)
 
     # ============================================================
-    # CONDICIONES SIN OPERADOR RELACIONAL (usa expr -> addExpr)
+    # CONDICIÓN SIN OP RELACIONAL (expr simple)
     # ============================================================
     def exitToAdd(self, ctx):
-        # Solo aplica cuando la expresión de condición no tuvo relop
-        # y estamos evaluando directamente el expr del if/while.
+        """
+        expr sin relop
+        Puede ser condición de IF/WHILE → GOTOF
+        """
         if not (self.in_if_condition or self.in_while_condition):
-            # Registrar valor del expr si está en la pila
             if self.operand_stack:
                 self.expr_value[ctx] = (self.operand_stack[-1], self.type_stack[-1])
             return
 
-        # Detectar el statement al que pertenece esta expr, aunque no haya nodo Expr padre.
+        # Detección del contexto padre real
         stmt_ctx = None
         parent_expr = None
         if isinstance(ctx.parentCtx, (PatitoParser.IfStmtContext, PatitoParser.WhileStmtContext)):
@@ -518,8 +673,6 @@ class PatitoSemanticListener(PatitoListener):
             if isinstance(parent_expr.parentCtx, (PatitoParser.IfStmtContext, PatitoParser.WhileStmtContext)):
                 stmt_ctx = parent_expr.parentCtx
 
-            # Si este addExpr es parte de una expr con operador relacional,
-            # no generamos salto aquí; la lógica se maneja en exitRelExpr.
             if parent_expr.relop():
                 if self.operand_stack:
                     self.expr_value[ctx] = (self.operand_stack[-1], self.type_stack[-1])
@@ -530,35 +683,39 @@ class PatitoSemanticListener(PatitoListener):
                 self.expr_value[ctx] = (self.operand_stack[-1], self.type_stack[-1])
             return
 
-        # Validar que este expr sea el de la condición del if/while
+        # Validar que este expr es realmente el condicional
         if isinstance(stmt_ctx, PatitoParser.IfStmtContext):
             if stmt_ctx.expr() != parent_expr:
-                if self.operand_stack:
-                    self.expr_value[ctx] = (self.operand_stack[-1], self.type_stack[-1])
                 return
-        else:  # WhileStmt
+        else:
             if stmt_ctx.expr() != parent_expr:
-                if self.operand_stack:
-                    self.expr_value[ctx] = (self.operand_stack[-1], self.type_stack[-1])
                 return
 
+        # Generar GOTOF directo
         cond_addr = self.operand_stack.pop()
         self.type_stack.pop()
 
         self.quadruples.append(Quadruple(OPCODES["GOTOF"], cond_addr, None, None))
         self.jump_stack.append(len(self.quadruples) - 1)
 
+        # Reset banderas
         if isinstance(stmt_ctx, PatitoParser.IfStmtContext):
             self.in_if_condition = False
         else:
             self.in_while_condition = False
-        # Registrar el resultado booleano del expr
+
         self.expr_value[parent_expr] = (self.quadruples[-1].left, "int")
 
     # ============================================================
     # RETURN
     # ============================================================
     def exitReturnStmt(self, ctx):
+        """
+        return(expr)
+        1. expr en pila
+        2. mover a return_addr
+        3. emitir RET
+        """
         if self.funcdir.current_function == "global":
             raise SemanticError("Un return solo puede aparecer dentro de una función")
 
@@ -571,10 +728,8 @@ class PatitoSemanticListener(PatitoListener):
 
         self.cube.check_assign(finfo["ret"], expr_type)
 
-        # Guardar en la dirección reservada para el valor de retorno
         self.quadruples.append(
             Quadruple(OPCODES["="], expr_addr, None, finfo["return_addr"])
         )
-        # Salida de la función
         self.quadruples.append(Quadruple(OPCODES["RET"], expr_addr, None, None))
         self.funcdir.mark_return(self.funcdir.current_function)
