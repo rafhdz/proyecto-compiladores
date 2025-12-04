@@ -18,14 +18,16 @@ class FuncInfo:
 
 class FuncDir:
     def __init__(self):
+        # "global" se modela como una función virtual sin retorno
         self.funcs = {"global": FuncInfo("void")}
-        self.current = "global"
+        self.current = "global" # Scope activo para inserción
 
     def add_function(self, name, return_type):
+        # Verifica redeclaraciones
         if name in self.funcs:
             raise SemanticError(f"Función '{name}' ya declarada")
-        self.funcs[name] = FuncInfo(return_type)
-        self.current = name
+        self.funcs[name] = FuncInfo(return_type) # Crea registro semántico
+        self.current = name # Cambia el scope actual a la función recién declarada
 
     def set_global(self):
         self.current = "global"

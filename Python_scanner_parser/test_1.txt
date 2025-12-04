@@ -11,9 +11,7 @@ var
     if (num < 2) {
         return(num);
     } else {
-        a = fib(num - 1);
-        b = fib(num - 2);
-        return(a + b);
+        return(fib(num - 1)+ fib(num - 2));
     };
 };
 
@@ -24,7 +22,7 @@ void imprimirValor(valor : int)
 
 main
 {
-    n = 12;
+    n = 20;
     resultado = fib(n);
     imprimirValor(resultado);
 }

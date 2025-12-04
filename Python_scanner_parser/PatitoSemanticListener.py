@@ -8,7 +8,6 @@ from TempManager import TempManager
 from quads import Quadruple
 from opcodes import OPCODES
 
-
 class PatitoSemanticListener(PatitoListener):
     """
     Listener semántico del lenguaje Patito.
@@ -24,8 +23,8 @@ class PatitoSemanticListener(PatitoListener):
 
     Esto es fase FRONTEND del compilador:
         1. Scanner: convierte texto en tokens
-        2. Parser: tokens → árbol sintáctico
-        3. Listener: árbol sintáctico → semántica + código intermedio
+        2. Parser: tokens a árbol sintáctico
+        3. Listener: árbol sintáctico a semántica + código intermedio
     """
 
     def __init__(self):
@@ -655,7 +654,7 @@ class PatitoSemanticListener(PatitoListener):
     def exitToAdd(self, ctx):
         """
         expr sin relop
-        Puede ser condición de IF/WHILE → GOTOF
+        Puede ser condición de IF/WHILE a GOTOF
         """
         if not (self.in_if_condition or self.in_while_condition):
             if self.operand_stack:
